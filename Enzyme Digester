@@ -14,9 +14,8 @@ if (!@ARGV) {
 }
 #Initialise module and Getopt options
 #Initialise fragment count
-my ($filename, $fh, $headercount, @values, $fragment, $fragcount, $datestring, $info, @fastas, @headerlist)=();
+my ($filename, $fh, $headercount, @values, $fragment, $fragcount, $datestring, $info, @fastas, @headerlist, $currentfragment)=();
 my $resultshandle;
-our $currentfragment=0;
 #Initialise file reading, fasta single line processing and results storage
 my $filename = shift or die "No filename supplied!\n";
 my $data="$filename";
