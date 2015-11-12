@@ -7,32 +7,46 @@ use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
 my ($a, $l, $t, $v) = ();
 GetOptions('a'=>\$a, 'l'=>\$l, 't'=>\$t, 'v'=>\$v) or die "Error: Specify enzyme option!\n";
+#Initialise module and Getopt options
 if (!@ARGV) {
-	print "Error: Arguments required.\n";
+	print "Error: Arguments required!\n";
 	exit;
 }
-#Initialise module and Getopt options
-#Initialise fragment count
-my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment)=();
-my $resultshandle;
-#Initialise file reading, fasta single line processing and results #storage
+if (!$a && !$l && !$t && !$v) {
+	print "Error: Specify enzyme option!\n";
+	exit;
+}
+#Idiot-proofing
+my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
+#Initialise file reading, fasta single line processing, fragment count
+#and results storage
 my $filename = shift or die "No filename supplied!\n";
 my $data="$filename";
 my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
+#Calculate current time in YY-MM-DD_HH-MM-SS format to create unique
+#file names
 {
   local $/=undef;
   open FILE, "$data" or die "Couldn't open file: $!";
   $info = <FILE>;
   close FILE;
 }
+#Load entire file into program
 $info=~ s/>/_>/g;
 my @fastas = split('_', $info);
 shift @fastas;
+#Locate individual entries within a file by looking for > and splits
+#each into individual array elements
 if ($a) {
 	open($fh, '>', "$datestring\_Endoproteinase_Arg-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
 	print "Endoproteinase Arg-C digestion\n\n";
+#Control statement to confirm choice
 	foreach my $singlefast (@fastas) {
 		open $resultshandle, '<', \$singlefast;
+#Reads multiline element line by line by treating it as a file (yes, 
+#perl can do that)
 		my ($line, %hash, $header, $seq)=();
 		my ($pepnum, $fragnum)=1;
 		while (defined ($line = <$resultshandle>)) {
@@ -65,14 +79,16 @@ if ($a) {
 		until ($currentfragment eq $fragcount) {
 		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
 			$currentfragment++;
-			print $fh "$header merged fragment $fragnum\n$fragment\n";
+			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
 			$fragnum++;
 		}
 		$currentfragment=0;
-#Print conjoined fragments to file
+#Print missed cleavage fragments to file
 	close $resultshandle;
 	}
 }
+#Will run each entry, producing regular fragments, then missed digestion
+#fragments for each cyle
 #Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
 #P (Proline)
 if ($l) {
@@ -112,11 +128,11 @@ if ($l) {
 		until ($currentfragment eq $fragcount) {
 		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
 			$currentfragment++;
-			print $fh "$header merged fragment $fragnum\n$fragment\n";
+			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
 			$fragnum++;
 		}
 		$currentfragment=0;
-#Print conjoined fragments to file
+#Print missed cleavage fragments to file
 	close $resultshandle;
 	}
 }
@@ -153,18 +169,21 @@ if ($t) {
 			print $fh "$header peptide $pepnum\n$val\n";
 			$pepnum++;
 		}
-#Print normal peptide fragments to file
+#Print normal peptide fragments per entry to file, purges array prior
+#to running to prevent left over data issues
 		$fragcount=scalar(grep $_, @values);
 		$fragcount--;
 		$fragnum=1;
 		until ($currentfragment eq $fragcount) {
-		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
+			$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
 			$currentfragment++;
-			print $fh "$header merged fragment $fragnum\n$fragment\n";
+			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
 			$fragnum++;
 		}
 		$currentfragment=0;
-#Print conjoined fragments to file
+#Print missed cleavage fragments to file, counts (total number of values
+#generated from an entry)-1 for limit and joins each element+next
+#element until reaching the limit
 	close $resultshandle;
 	}
 }
@@ -207,11 +226,11 @@ if ($v) {
 		until ($currentfragment eq $fragcount) {
 		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
 			$currentfragment++;
-			print $fh "$header merged fragment $fragnum\n$fragment\n";
+			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
 			$fragnum++;
 		}
 		$currentfragment=0;
-#Print conjoined fragments to file
+#Print missed cleavage fragment fragments to file
 	close $resultshandle;
 	}
 }
