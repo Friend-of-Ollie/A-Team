@@ -1,13 +1,16 @@
 #!/usr/bin/perl
 
-# enzyme_digester_VIII.pl
+# enzyme_digester_IX.pl
 #  - digests amino acid sequences
 use strict;
+#use strict for good coding
 use Getopt::Long qw(GetOptions);
+#use Getopt for command line style options
 use POSIX qw(strftime);
+#use POSIX for timestamp
 my ($a, $l, $t, $v) = ();
 GetOptions('a'=>\$a, 'l'=>\$l, 't'=>\$t, 'v'=>\$v) or die "Error: Specify enzyme option!\n";
-#Initialise module and Getopt options
+#Initialise modules and Getopt options
 if (!@ARGV) {
 	print "Error: Arguments required!\n";
 	exit;
@@ -16,7 +19,7 @@ if (!$a && !$l && !$t && !$v) {
 	print "Error: Specify enzyme option!\n";
 	exit;
 }
-#Idiot-proofing
+#Idiot-proofing to force options
 my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
 #Initialise file reading, fasta single line processing, fragment count
 #and results storage
@@ -27,7 +30,7 @@ my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
 #file names
 {
   local $/=undef;
-  open FILE, "$data" or die "Couldn't open file: $!";
+  open FILE, "$data" or die "Error: Couldn't open file: $!";
   $info = <FILE>;
   close FILE;
 }
@@ -43,199 +46,99 @@ if ($a) {
 #file name
 	print "Endoproteinase Arg-C digestion\n\n";
 #Control statement to confirm choice
-	foreach my $singlefast (@fastas) {
-		open $resultshandle, '<', \$singlefast;
+}
+if ($l) {
+	open($fh, '>', "$datestring\_Endoproteinase_Lys-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Endoproteinase Lys-C digestion\n\n";
+#Control statement to confirm choice
+}
+if ($t) {
+	open($fh, '>', "$datestring\_Trypsin.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Trypsin digestion\n\n";
+#Control statement to confirm choice
+}
+if ($v) {
+	open($fh, '>', "$datestring\_V8_protease.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "V8 protease digestion\n\n";
+#Control statement to confirm choice
+}
+foreach my $singlefast (@fastas) {
+	open $resultshandle, '<', \$singlefast;
 #Reads multiline element line by line by treating it as a file (yes, 
 #perl can do that)
-		my ($line, %hash, $header, $seq)=();
-		my ($pepnum, $fragnum)=1;
-		while (defined ($line = <$resultshandle>)) {
-			chomp $line;
-			if ($line=~m/^>/) {
-				$header = $line;
-			}
-			else {
-				if ($header) {
+	my ($line, %hash, $header, $seq)=();
+	my ($pepnum, $fragnum)=1;
+#Initialise local variables which need resetting every entry cycle
+	while (defined ($line = <$resultshandle>)) {
+		chomp $line;
+		if ($line=~m/^>/) {
+			$header = $line;
+		}
+#Find entry header and save it
+		else {
+			if ($header) {
 				$hash{$header} .= $line;
-				}
 			}
-			push @headerlist, $header;
 		}
-		for $header (keys %hash) {
-			$seq = $hash{$header};
-			$seq=~ s/R(?!P)/R_/g;
-			my @x_values = split('_', $seq);
-			undef(@values);
-			push(@values, @x_values);
-		}
-		foreach my $val (@values) {
-			print $fh "$header peptide $pepnum\n$val\n";
-			$pepnum++;
-		}
-#Print normal peptide fragments to file
-		$fragcount=scalar(grep $_, @values);
-		$fragcount--;
-		$fragnum=1;
-		until ($currentfragment eq $fragcount) {
-		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
-			$currentfragment++;
-			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
-			$fragnum++;
-		}
-		$currentfragment=0;
-#Print missed cleavage fragments to file
-	close $resultshandle;
+	push @headerlist, $header;
+#Push chomped non-header lines into a hash
 	}
+	for $header (keys %hash) {
+		$seq = $hash{$header};
+		if ($a) {
+			$seq=~ s/R(?!P)/R_/g;
+		}
+#Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
+#P (Proline)
+		if ($l) {
+			$seq=~ s/K(?!P)/K_/g;
+		}
+#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
+#(Proline)
+		if ($t) {
+			$seq=~ s/K(?!P)/K_/g;
+			$seq=~ s/R(?!P)/R_/g;
+		}
+#Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
+#after P (Proline)
+		if ($v) {
+			$seq=~ s/E(?!P)/E_/g;
+		}
+#V8 protease digestion: cut after E (Glutamate), except before P 
+#(Proline)
+		my @x_values = split('_', $seq);
+		undef(@values);
+		push(@values, @x_values);
+	}
+#Push data into another array so that it can be moved out of local scope
+	foreach my $val (@values) {
+		print $fh "$header peptide $pepnum\n$val\n";
+		$pepnum++;
+	}
+#Print normal peptide fragments to file
+	$fragcount=scalar(grep $_, @values);
+	$fragcount--;
+	$fragnum=1;
+	until ($currentfragment eq $fragcount) {
+		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
+		$currentfragment++;
+		print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
+		$fragnum++;
+	}
+	$currentfragment=0;
+#Print missed cleavage fragments to file
+close $resultshandle;
+#Close array element to either move onto the next one or finish
 }
 #Will run each entry, producing regular fragments, then missed digestion
 #fragments for each cyle
-#Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
-#P (Proline)
-if ($l) {
-	open($fh, '>', "$datestring\_Endoproteinase_Lys-C.fasta");
-	print "Endoproteinase Lys-C digestion\n\n";
-	foreach my $singlefast (@fastas) {
-		open $resultshandle, '<', \$singlefast;
-		my ($line, %hash, $header, $seq)=();
-		my ($pepnum, $fragnum)=1;
-		while (defined ($line = <$resultshandle>)) {
-			chomp $line;
-			if ($line=~m/^>/) {
-				$header = $line;
-			}
-			else {
-				if ($header) {
-				$hash{$header} .= $line;
-				}
-			}
-			push @headerlist, $header;
-		}
-		for $header (keys %hash) {
-			$seq = $hash{$header};
-			$seq=~ s/K(?!P)/K_/g;
-			my @x_values = split('_', $seq);
-			undef(@values);
-			push(@values, @x_values);
-		}
-		foreach my $val (@values) {
-			print $fh "$header peptide $pepnum\n$val\n";
-			$pepnum++;
-		}
-#Print normal peptide fragments to file
-		$fragcount=scalar(grep $_, @values);
-		$fragcount--;
-		$fragnum=1;
-		until ($currentfragment eq $fragcount) {
-		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
-			$currentfragment++;
-			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
-			$fragnum++;
-		}
-		$currentfragment=0;
-#Print missed cleavage fragments to file
-	close $resultshandle;
-	}
-}
-#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
-#(Proline)
-if ($t) {
-	open($fh, '>', "$datestring\_Trypsin.fasta");
-	print "Trypsin digestion\n\n";
-	foreach my $singlefast (@fastas) {
-		open $resultshandle, '<', \$singlefast;
-		my ($line, %hash, $header, $seq)=();
-		my ($pepnum, $fragnum)=1;
-		while (defined ($line = <$resultshandle>)) {
-			chomp $line;
-			if ($line=~m/^>/) {
-				$header = $line;
-			}
-			else {
-				if ($header) {
-				$hash{$header} .= $line;
-				}
-			}
-			push @headerlist, $header;
-		}
-		for $header (keys %hash) {
-			$seq = $hash{$header};
-			$seq=~ s/K(?!P)/K_/g;
-			$seq=~ s/R(?!P)/R_/g;
-			my @x_values = split('_', $seq);
-			undef(@values);
-			push(@values, @x_values);
-		}
-		foreach my $val (@values) {
-			print $fh "$header peptide $pepnum\n$val\n";
-			$pepnum++;
-		}
-#Print normal peptide fragments per entry to file, purges array prior
-#to running to prevent left over data issues
-		$fragcount=scalar(grep $_, @values);
-		$fragcount--;
-		$fragnum=1;
-		until ($currentfragment eq $fragcount) {
-			$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
-			$currentfragment++;
-			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
-			$fragnum++;
-		}
-		$currentfragment=0;
-#Print missed cleavage fragments to file, counts (total number of values
-#generated from an entry)-1 for limit and joins each element+next
-#element until reaching the limit
-	close $resultshandle;
-	}
-}
-#Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
-#after P (Proline)
-if ($v) {
-	open($fh, '>', "$datestring\_V8_protease.fasta");
-	print "V8 protease digestion\n\n";
-	foreach my $singlefast (@fastas) {
-		open $resultshandle, '<', \$singlefast;
-		my ($line, %hash, $header, $seq)=();
-		my ($pepnum, $fragnum)=1;
-		while (defined ($line = <$resultshandle>)) {
-			chomp $line;
-			if ($line=~m/^>/) {
-				$header = $line;
-			}
-			else {
-				if ($header) {
-				$hash{$header} .= $line;
-				}
-			}
-			push @headerlist, $header;
-		}
-		for $header (keys %hash) {
-			$seq = $hash{$header};
-			$seq=~ s/E(?!P)/E_/g;
-			my @x_values = split('_', $seq);
-			undef(@values);
-			push(@values, @x_values);
-		}
-		foreach my $val (@values) {
-			print $fh "$header peptide $pepnum\n$val\n";
-			$pepnum++;
-		}
-#Print normal peptide fragments to file
-		$fragcount=scalar(grep $_, @values);
-		$fragcount--;
-		$fragnum=1;
-		until ($currentfragment eq $fragcount) {
-		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
-			$currentfragment++;
-			print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
-			$fragnum++;
-		}
-		$currentfragment=0;
-#Print missed cleavage fragment fragments to file
-	close $resultshandle;
-	}
-}
-#V8 protease digestion: cut after E (Glutamate), except before P 
-#(Proline)
 print "Complete!\n";
 close $fh;
 exit;
+#Processing complete, close print file and exits program
