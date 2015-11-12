@@ -5,7 +5,6 @@
 use strict;
 use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
-use File::Slurp;
 my ($a, $l, $t, $v) = ();
 GetOptions('a'=>\$a, 'l'=>\$l, 't'=>\$t, 'v'=>\$v) or die "Error: Specify enzyme option!\n";
 if (!@ARGV) {
@@ -16,16 +15,21 @@ if (!@ARGV) {
 #Initialise fragment count
 my ($filename, $fh, $headercount, @values, $fragment, $fragcount, $datestring, $info, @fastas, @headerlist, $currentfragment)=();
 my $resultshandle;
-#Initialise file reading, fasta single line processing and results storage
+#Initialise file reading, fasta single line processing and results #storage
 my $filename = shift or die "No filename supplied!\n";
 my $data="$filename";
-my $datestring = strftime ('%Y-%m-%d %H-%M-%S', localtime);
-my $info = read_file($data);
+my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
+{
+  local $/=undef;
+  open FILE, "$data" or die "Couldn't open file: $!";
+  $info = <FILE>;
+  close FILE;
+}
 $info=~ s/>/_>/g;
 my @fastas = split('_', $info);
 shift @fastas;
 if ($a) {
-	open($fh, '>', "$datestring Endoproteinase Arg-C.txt");
+	open($fh, '>', "$datestring\_Endoproteinase_Arg-C.fasta");
 	print "Endoproteinase Arg-C digestion\n\n";
 	foreach my $singlefast (@fastas) {
 		open $resultshandle, '<', \$singlefast;
@@ -69,9 +73,10 @@ if ($a) {
 	close $resultshandle;
 	}
 }
-#Endoproteinase Arg-C digestion: cut after R (Arginine), except after P (Proline)
+#Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
+#P (Proline)
 if ($l) {
-	open($fh, '>', "$datestring Endoproteinase Lys-C.txt");
+	open($fh, '>', "$datestring\_Endoproteinase_Lys-C.fasta");
 	print "Endoproteinase Lys-C digestion\n\n";
 	foreach my $singlefast (@fastas) {
 		open $resultshandle, '<', \$singlefast;
@@ -115,9 +120,10 @@ if ($l) {
 	close $resultshandle;
 	}
 }
-#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P (Proline)
+#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
+#(Proline)
 if ($t) {
-	open($fh, '>', "$datestring Trypsin.txt");
+	open($fh, '>', "$datestring\_Trypsin.fasta");
 	print "Trypsin digestion\n\n";
 	foreach my $singlefast (@fastas) {
 		open $resultshandle, '<', \$singlefast;
@@ -162,10 +168,11 @@ if ($t) {
 	close $resultshandle;
 	}
 }
-#Trypsin digestion: cut after K (Lysine) and R (Arginine), except after P (Proline)
+#Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
+#after P (Proline)
 if ($v) {
-	open($fh, '>', "$datestring V8 protinase.txt");
-	print "V8 protinase digestion\n\n";
+	open($fh, '>', "$datestring\_V8_protease.fasta");
+	print "V8 protease digestion\n\n";
 	foreach my $singlefast (@fastas) {
 		open $resultshandle, '<', \$singlefast;
 		my ($line, %hash, $header, $seq)=();
@@ -208,7 +215,8 @@ if ($v) {
 	close $resultshandle;
 	}
 }
-#V8 protinase digestion: cut after E (Glutamate), except before P (Proline)
+#V8 protease digestion: cut after E (Glutamate), except before P 
+#(Proline)
 print "Complete!\n";
 close $fh;
 exit;
