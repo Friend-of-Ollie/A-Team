@@ -1,0 +1,144 @@
+#!/usr/bin/perl
+
+# enzyme_digester_IX.pl
+#  - digests amino acid sequences
+use strict;
+#use strict for good coding
+use Getopt::Long qw(GetOptions);
+#use Getopt for command line style options
+use POSIX qw(strftime);
+#use POSIX for timestamp
+my ($a, $l, $t, $v) = ();
+GetOptions('a'=>\$a, 'l'=>\$l, 't'=>\$t, 'v'=>\$v) or die "Error: Specify enzyme option!\n";
+#Initialise modules and Getopt options
+if (!@ARGV) {
+	print "Error: Arguments required!\n";
+	exit;
+}
+if (!$a && !$l && !$t && !$v) {
+	print "Error: Specify enzyme option!\n";
+	exit;
+}
+#Idiot-proofing to force options
+my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
+#Initialise file reading, fasta single line processing, fragment count
+#and results storage
+my $filename = shift or die "No filename supplied!\n";
+my $data="$filename";
+my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
+#Calculate current time in YY-MM-DD_HH-MM-SS format to create unique
+#file names
+{
+  local $/=undef;
+  open FILE, "$data" or die "Error: Couldn't open file: $!";
+  $info = <FILE>;
+  close FILE;
+}
+#Load entire file into program
+$info=~ s/>/_>/g;
+my @fastas = split('_', $info);
+shift @fastas;
+#Locate individual entries within a file by looking for > and splits
+#each into individual array elements
+if ($a) {
+	open($fh, '>', "$datestring\_Endoproteinase_Arg-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Endoproteinase Arg-C digestion\n\n";
+#Control statement to confirm choice
+}
+if ($l) {
+	open($fh, '>', "$datestring\_Endoproteinase_Lys-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Endoproteinase Lys-C digestion\n\n";
+#Control statement to confirm choice
+}
+if ($t) {
+	open($fh, '>', "$datestring\_Trypsin.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Trypsin digestion\n\n";
+#Control statement to confirm choice
+}
+if ($v) {
+	open($fh, '>', "$datestring\_V8_protease.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "V8 protease digestion\n\n";
+#Control statement to confirm choice
+}
+foreach my $singlefast (@fastas) {
+	open $resultshandle, '<', \$singlefast;
+#Reads multiline element line by line by treating it as a file (yes, 
+#perl can do that)
+	my ($line, %hash, $header, $seq)=();
+	my ($pepnum, $fragnum)=1;
+#Initialise local variables which need resetting every entry cycle
+	while (defined ($line = <$resultshandle>)) {
+		chomp $line;
+		if ($line=~m/^>/) {
+			$header = $line;
+		}
+#Find entry header and save it
+		else {
+			if ($header) {
+				$hash{$header} .= $line;
+			}
+		}
+	push @headerlist, $header;
+#Push chomped non-header lines into a hash
+	}
+	for $header (keys %hash) {
+		$seq = $hash{$header};
+		if ($a) {
+			$seq=~ s/R(?!P)/R_/g;
+		}
+#Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
+#P (Proline)
+		if ($l) {
+			$seq=~ s/K(?!P)/K_/g;
+		}
+#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
+#(Proline)
+		if ($t) {
+			$seq=~ s/K(?!P)/K_/g;
+			$seq=~ s/R(?!P)/R_/g;
+		}
+#Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
+#after P (Proline)
+		if ($v) {
+			$seq=~ s/E(?!P)/E_/g;
+		}
+#V8 protease digestion: cut after E (Glutamate), except before P 
+#(Proline)
+		my @x_values = split('_', $seq);
+		undef(@values);
+		push(@values, @x_values);
+	}
+#Push data into another array so that it can be moved out of local scope
+	foreach my $val (@values) {
+		print $fh "$header peptide $pepnum\n$val\n";
+		$pepnum++;
+	}
+#Print normal peptide fragments to file
+	$fragcount=scalar(grep $_, @values);
+	$fragcount--;
+	$fragnum=1;
+	until ($currentfragment eq $fragcount) {
+		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
+		$currentfragment++;
+		print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
+		$fragnum++;
+	}
+	$currentfragment=0;
+#Print missed cleavage fragments to file
+close $resultshandle;
+#Close array element to either move onto the next one or finish
+}
+#Will run each entry, producing regular fragments, then missed digestion
+#fragments for each cyle
+print "Complete!\n";
+close $fh;
+exit;
+#Processing complete, close print file and exits program
