@@ -35,8 +35,8 @@ my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
   close FILE;
 }
 #Load entire file into program
-$info=~ s/>/_>/g;
-my @fastas = split('_', $info);
+$info=~ s/>/<>/g;
+my @fastas = split('<', $info);
 shift @fastas;
 #Locate individual entries within a file by looking for > and splits
 #each into individual array elements
@@ -92,27 +92,27 @@ foreach my $singlefast (@fastas) {
 	for $header (keys %hash) {
 		$seq = $hash{$header};
 		if ($a) {
-			$seq=~ s/R(?!P)/R_/g;
+			$seq=~ s/R(?!P)/R</g;
 		}
 #Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
 #P (Proline)
 		if ($l) {
-			$seq=~ s/K(?!P)/K_/g;
+			$seq=~ s/K(?!P)/K</g;
 		}
 #Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
 #(Proline)
 		if ($t) {
-			$seq=~ s/K(?!P)/K_/g;
-			$seq=~ s/R(?!P)/R_/g;
+			$seq=~ s/K(?!P)/K</g;
+			$seq=~ s/R(?!P)/R</g;
 		}
 #Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
 #after P (Proline)
 		if ($v) {
-			$seq=~ s/E(?!P)/E_/g;
+			$seq=~ s/E(?!P)/E</g;
 		}
 #V8 protease digestion: cut after E (Glutamate), except before P 
 #(Proline)
-		my @x_values = split('_', $seq);
+		my @x_values = split('<', $seq);
 		undef(@values);
 		push(@values, @x_values);
 	}
