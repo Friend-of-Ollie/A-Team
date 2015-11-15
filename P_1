@@ -6,10 +6,22 @@ use Getopt::Long;
 
 #process command line arguments
 
+#my $ARGV = @ARGV;
+#if ($ARGV == 0) {
+#    print "You must enter arguments!\nP_1 [--man] for help\nP_1 [--files][your files] to start\n";
+#    exit;
+#}
+
+
+my @files;
+my @frame;
 my $man_page;
-GetOptions ('man' => \$man_page) or die "Usage:";
+GetOptions ('man' => \$man_page ,
+            'files=s' => \@files , 
+            'frame=i' => \@frame) or die "Usage:\nP_1 [--man]\t [--files]\t[--frame]";
+
 if ($man_page){
-        my $man = "Welcome to Group A's Sequence analysis pipeline.
+        my $man = "\nWelcome to Group A's Sequence analysis pipeline.
         this is the first element of the pipeline, coded by Maximilien Rothier Bautzer.
         \nThis program will open and process the fasta file. It will begin by separating the
         DNA into 6 reading frames, 3 in the forward strand and 3 in the reverse strand.
@@ -21,11 +33,15 @@ if ($man_page){
         shorter than 50 nucleotides, which is too small to be considered relevant. Those small elements
         are then deleted. The array values are then printed in the appropriate format. Information such
         as Open reading frame (ORF) length and which frame it was found in is provided, along with the name of the organism.
-        Frames 1, 2 and 3 are from the forward strand and frames 4,5, and 6 are in the reverse strand.";
-        $man =~ s/(.{1,100})/$1\n/gs;
+        Frames 1, 2 and 3 are from the forward strand and frames 4,5, and 6 are in the reverse strand.\n";
+        $man =~ s/(.{1,80})/$1\n/gs;
         print $man;
         exit;
 }
+
+
+#foreach (@files) {
+#    open (FH , '<' , $_ ) or die "\nFailed to open file";
 
 #hash for translation
 
@@ -49,16 +65,27 @@ my %DNAtoAA = (
 
 #declare global variables
 
-my ($organism, $chomped_fasta, $fs1, $fs2, $fs3, $rs1, $rs2, $rs3, @tfs1, @tfs2, @tfs3, @trs1, @trs2, @trs3, $tfs1, $tfs2, $tfs3, $trs1, $trs2, $trs3, @sorted_ORF, @name_seq, $fastafile,);
+my ($organism,
+    $chomped_fasta,
+    $fs1, $fs2, $fs3, $rs1, $rs2, $rs3,
+    @ORF_F1, @ORF_F2, @ORF_F3, @ORF_F4, @ORF_F5, @ORF_F6,
+    @tfs1, @tfs2, @tfs3, @trs1, @trs2, @trs3,
+    $tfs1, $tfs2, $tfs3, $trs1, $trs2, $trs3,
+    @sorted_ORF, @name_seq,
+    $fastafile,);
 
-#opens the fasta file or gives the relevant error message
+#opens the fasta files or gives the relevant error message
+
+#if (@files) {
+#        foreach ($_) {
+#                open (FH , '<' , $_ ) or die "\nFailed to open file $_ $!";
+
+
 
 print "which file would you like to open?\n";
 
-($fastafile ) = <>;
-
-open (FH , $fastafile ) or die "\nFailed to open file $!";
-
+$fastafile= <>;
+open (FH , '<' , $fastafile ) or die "\nFailed to open file $_ $!";
 
 #turn the file into one long string
 
@@ -72,9 +99,11 @@ while ( <FH>) {
 @name_seq = split /sequence/, $chomped_fasta;
 $organism = $name_seq [0];
 
+#cut if the user specified a frame
+
 #initiate forward and reverse strands
 
-$fs1 = $name_seq [1];
+$fs1 = uc $name_seq [1];
 $rs1 = reverse($fs1 );
 
 #split into the 3 reading frames
@@ -89,8 +118,8 @@ $rs3 = substr $rs2, 1;
 
 for (my $i =0;$i<=length($fs1)-2;$i+=3) {
         $_= substr $fs1, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @tfs1, $translated_value;
         }
@@ -98,8 +127,8 @@ for (my $i =0;$i<=length($fs1)-2;$i+=3) {
 
 for (my $i =0;$i<=length($fs2)-2;$i+=3) {
         $_= substr $fs2, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @tfs2, $translated_value;
         }
@@ -107,8 +136,8 @@ for (my $i =0;$i<=length($fs2)-2;$i+=3) {
 
 for (my $i =0;$i<=length($fs3)-2;$i+=3) {
         $_= substr $fs3, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @tfs3, $translated_value;
         }
@@ -116,8 +145,8 @@ for (my $i =0;$i<=length($fs3)-2;$i+=3) {
 
 for (my $i =0;$i<=length($rs1)-2;$i+=3) {
         $_= substr $rs1, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @trs1, $translated_value;
         }
@@ -125,8 +154,8 @@ for (my $i =0;$i<=length($rs1)-2;$i+=3) {
 
 for (my $i =0;$i<=length($rs2)-2;$i+=3) {
         $_= substr $rs2, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @trs2, $translated_value;
         }
@@ -134,8 +163,8 @@ for (my $i =0;$i<=length($rs2)-2;$i+=3) {
 
 for (my $i =0;$i<=length($rs3)-2;$i+=3) {
         $_= substr $rs3, $i , 3;
-        if ($_ !~ m/.*n.*|n.*|.*n/) {
-                my $temp = uc$_;
+        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                my $temp = $_;
                 my $translated_value = $DNAtoAA{$temp};
                 push @trs3, $translated_value;
         }
@@ -153,34 +182,41 @@ $trs3 = join '' , @trs3;
 
 #split translated sequences into ORF
 
-my @ORF_F1= split /[M*]/, $tfs1;
-my @ORF_F2= split /[M*]/, $tfs2;
-my @ORF_F3= split /[M*]/, $tfs3;
+my (@s, @e);
 
-my @ORF_F4= split /[M*]/, $trs1;
-my @ORF_F5= split /[M*]/, $trs2;
-my @ORF_F6= split /[M*]/, $trs3;
+push @s, $-[0] while $tfs1 =~/M/g;
+push @e, $+[0] while $tfs1 =~/\*/g;
+
+for my $s ( @s ) {
+        for my $e ( @e ) {
+            push @ORF_F1, substr $tfs1, $s, $e-$s if $e > $s;
+        }
+}
+
+foreach (@ORF_F1) {
+        print ",$_,";
+}
 
 #ignore ORFs less than 100 amino acid long
 
 foreach (@ORF_F1) {
-        @ORF_F1 = grep length($_) >= 100, @ORF_F1;
+        @ORF_F1 = grep length($_) >= 300, @ORF_F1;
 }
-foreach (@ORF_F2) {
-        @ORF_F2 = grep length($_) >= 100, @ORF_F2;
-}
-foreach (@ORF_F3) {
-        @ORF_F3 = grep length($_) >= 100, @ORF_F3;
-}
-foreach (@ORF_F4) {
-        @ORF_F4 = grep length($_) >= 100, @ORF_F4;
-}
-foreach (@ORF_F5) {
-        @ORF_F5 = grep length($_) >= 100, @ORF_F5;
-}
-foreach (@ORF_F6) {
-        @ORF_F6 = grep length($_) >= 100, @ORF_F6;
-}
+#foreach (@ORF_F2) {
+#        @ORF_F2 = grep length($_) >= 300, @ORF_F2;
+#}
+#foreach (@ORF_F3) {
+#       @ORF_F3 = grep length($_) >= 300, @ORF_F3;
+#}
+#foreach (@ORF_F4) {
+#        @ORF_F4 = grep length($_) >= 300, @ORF_F4;
+#}
+#foreach (@ORF_F5) {
+#        @ORF_F5 = grep length($_) >= 300, @ORF_F5;
+#}
+#foreach (@ORF_F6) {
+#        @ORF_F6 = grep length($_) >= 300, @ORF_F6;
+#}
 
 #print results
 
@@ -188,33 +224,35 @@ my $ORF_count=1;
 
 foreach (@ORF_F1) {
         my $ORF_length = length ($_);
-        print "$organism"."_ORF_F1_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+        print "$organism"."_ORF_F1_".($ORF_count)."_length: ".($ORF_length)."\n$_\n";
         $ORF_count++;
 }
-foreach (@ORF_F2) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F2_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count++;
-}
-foreach (@ORF_F3) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F3_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count++;
-}
-foreach (@ORF_F4) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F4_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count++;
-}
-foreach (@ORF_F5) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F5_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count++;
-}
-foreach (@ORF_F6) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F6_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count++;
-}
+#foreach (@ORF_F2) {
+#        my $ORF_length = length ($_);
+#        print "$organism"."_ORF_F2_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+#        $ORF_count++;
+#}
+#foreach (@ORF_F3) {
+#        my $ORF_length = length ($_);
+#        print "$organism"."_ORF_F3_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+#        $ORF_count++;
+#}
+#foreach (@ORF_F4) {
+#        my $ORF_length = length ($_);
+#        print "$organism"."_ORF_F4_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+#        $ORF_count++;
+#}
+#foreach (@ORF_F5) {
+#        my $ORF_length = length ($_);
+#        print "$organism"."_ORF_F5_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+#        $ORF_count++;
+#}
+#foreach (@ORF_F6) {
+#        my $ORF_length = length ($_);
+#        print "$organism"."_ORF_F6_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
+#        $ORF_count++;
+#}
 
+#print number of ORF in each arrays
+#}
 exit;
