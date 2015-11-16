@@ -1,0 +1,155 @@
+#!/usr/bin/perl –w 
+# Read a FASTA file and extract data 
+use Getopt::Std;
+use strict; 
+use vars qw($opt_s);
+getopts('abt:s:');
+use Data::Dumper;
+
+#set a variable for hash choice
+my $hashchoice = (defined $opt_s ) ? $opt_s: 0;
+#mass hashes
+my %s2m = (A =>  71.0371, C => 103.0092, D => 115.0269, E => 129.0426,
+        F => 147.0684, G =>  57.0215, H => 137.0589, I => 113.0841,
+        K => 128.0950, L => 113.0841, M => 131.0405, N => 114.0429,
+        P =>  97.0528, Q => 128.0586, R => 156.1011, S =>  87.0320,
+        T => 101.0477, V =>  99.0684, W => 186.0793, Y => 163.0633,
+        '\s' => 0.0, "*" => 0.0
+       );
+
+my %s2a = (A =>  71.08, C => 103.14, D => 115.09, E => 129.12,
+        F => 147.18, G =>  57.05, H => 137.14, I => 113.16,
+        K => 128.17, L => 113.16, M => 131.19, N => 114.10,
+        P =>  97.12, Q => 128.13, R => 156.19, S =>  87.08,
+        T => 101.10, V =>  99.13, W => 186.21, Y => 163.18,
+        '\s' => 0.0, "*" => 0.0
+       );
+
+my %Masshash ;
+my $masschoice ;
+my $value ;
+
+#hash choice and error trapping of failure to specify
+if ($hashchoice == 0){
+	print "error - no mass charge value defined \n"	;
+	print "Please enter -s 1 for monoisotropic or -s 2 for average mass \n";
+	print " charge values. ";
+	die;
+}
+elsif ($hashchoice == 1){
+	print "MONOISOTROPIC VALUES CHOSEN \n";
+	%Masshash = %s2m ;
+	$masschoice = "monoisotropic" ;
+	$value = 18.0106 ;
+}
+elsif ($hashchoice == 2){
+	print "AVERAGE MASS VALUES CHOSEN \n";
+	%Masshash = %s2a ;
+	$masschoice = "average mass" ;
+	$value = 18.0153 ;
+}
+else {
+	print "unknown error!!! ";
+	die;
+}
+
+my @filedata= ();
+my @heads = ("1");
+my @sequens = ();
+my $filename ;
+#kill script if no filename is provided
+my $filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
+
+#body of script
+
+@filedata= getfile($filename ); 
+
+dataextract(@filedata ); 
+
+massanal (@sequens, @heads );
+
+exit;
+
+#subroutine for getting data from a file
+sub getfile { 
+	my($file )= @_ ; 
+	my @filedata = (); 
+
+	open(IFILE,$file ) or die "Can't open file \"$filename\"\n"; 
+	@filedata = <IFILE>; 
+	close IFILE;
+	return @filedata ; 
+	} 
+
+# Subroutine to extract FASTA sequence data from the array made from file
+sub dataextract { 
+	my( @fastafile )= @_ ; 
+	my $string = "";
+	my $line ;
+	my $peptide ;
+	
+	foreach $line (@fastafile ){
+#extract header and peptide info
+				if ($line =~ /^>/){
+					chomp ($line );
+					$string = $line ;
+					push (@heads, $string );
+					}
+				else {
+					$peptide = $line ;
+					push (@sequens, $peptide );	
+					}
+				}
+#	print Dumper $datahash{$string}; - debugging functions
+# test function to see if it worked 
+#	print "here are the headers: ", @heads, " \n";
+#	print scalar (@heads );
+#	print "here are the sequences: ", @sequens, " \n" ;
+#	print scalar (@sequens );
+	return @heads;
+	return @sequens;
+	}
+
+
+#subroutine for calculating the mass to charge ratios of peptides
+sub massanal {
+	my $mtc ;
+	my $line ;
+	my @readout ;
+	my $count ;
+	my $seq ;
+	my @mtc ;
+	my $fm ;
+	my $mc ;
+	my $Pvalue ;
+
+#print @sequens ; - debugging functions
+#print scalar (@sequens) ;
+open (my $fh, ">", "$filename $masschoice anal.pepmasses");
+# process the array of peptide sequences, split each element and count
+foreach $_ (@sequens ){	
+		$count++ ;
+		@mtc = split (//, $_ );
+		$mc = 1 + $value ;
+		#refer each aa in peptide to hash and add aa count 
+		foreach $_ (@mtc ){
+				push (@readout,  $_ );
+				my $average_x = $Masshash{$_};
+				#print "amino acid $_ of mass $Masshash{$_} or $average_x \n";
+				if ($average_x) {
+						$mtc += $average_x ;
+						}
+				}
+		$fm = $mtc + $mc;
+		#output to file
+		printf $fh "Peptide_name\t\tpeptide\tMass-to-Charge\t z\t P\tSequence\n" ;
+		printf $fh " @heads[$count] \t $count \t  $fm  \t 1 \t 0 \t @readout \n" ;
+		#clear counting elements to avoid culmulative count  
+		@readout=() ;		
+		$fm=0 ;
+		$mc=0;
+		$mtc=0;
+		}
+close $fh;
+print "FILE $filename $masschoice anal.pepmasses written \n" ;
+}
