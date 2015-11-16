@@ -1,53 +1,63 @@
 #!/usr/bin/perl -w
 use strict;
-use Getopt::Long();
+use Getopt::Long;
 
+
+### brief usage
 sub usage {
 	print 
 		"Usage:","\n",
 		"\t","perl task4.pl -i data.txt -o output.txt -mr-min 1000 -mr-max 1550  -bin 50 -error 1.2Da -ion-with P M -ion-start M","\n",
-		"\t","-man/-help","\t\t","read complete manual page","\n",
+		"\t","-man","\t\t","read complete manual page","\n",
+		"\t","-h/help","\t\t","read breif usage","\n",
 		"Mandatory Parameters:","\n",
 		"\t","-i","\t\t\t","input file","\n",
 		"\t","-o","\t\t\t","output file","\n",
 		"Options:","\n",
-		"\t","-mr-max","\t\t\t","upper limit of mass range","\n",
-		"\t","-mr-min","\t\t\t","lower limit of mass range","\n",
-		"\t","-bin","\t\t\t","bin size","\n",
-		"\t","-error","\t\t\t","give value of mass error (ppm/Da), default error=0. ex. 0.5Da","\n",
+		"\t","-mr-max","\t\t\t","upper limit of mass range (Default: the minimum m/z value of the input data)","\n",
+		"\t","-mr-min","\t\t\t","lower limit of mass range (Default: the maximum m/z value of the input data)","\n",
+		"\t","-bin","\t\t\t","bin size (Default: bin size = 50)","\n",
+		"\t","-error","\t\t\t","give value of mass error (ppm/Da) ex.0.5Da/0.5ppm (Default: mass error = 0 Da)","\n",
 		"\t","-ion-start","\t\t","only calculate sequences start with specific amino acids","\n",
 		"\t","-ion-with","\t\t","only calculate sequences include specific amino acids","\n";
 		
 }
 
-usage();
-### read opts
-my ($filename_input, $filename_output,$mass_range_max,$mass_range_min,$bin_size,$error,@ion_with,$ion_with_each);
-my $ion_start="";
-Getopt::Long::GetOptions(
-	'i=s' => \$filename_input,
-	'o=s' => \$filename_output, 
-	'mr-max=s' => \$mass_range_max, 
-	'mr-min=s' => \$mass_range_min, 
-	'bin=s' => \$bin_size,
-	'error=s' => \$error, 
-	'ion-start=s' => \$ion_start,
-	'ion-with=s{,}' => \@ion_with
-);
-#or usage("file name must be specified.") 
-#unless defined $filename_input;
-#print $filename_input,"\n",$filename_output;
+### read opts and set default values
+GetOptions(
+	'i=s' => \(my $filename_input=""),
+	'o=s' => \(my $filename_output=""),
+	'mr-max=s' => \my $mass_range_max, 
+	'mr-min=s' => \my $mass_range_min, 
+	'bin=s' => \(my $bin_size = 50),
+	'error=s' => \(my $error = 0), 
+	'ion-start=s' => \(my $ion_start = ""),
+	'ion-with=s{,}' => \my @ion_with,
+	'help|h' => \my $help,
+) or usage();
 
+### print usage while -help/-h
+if ($help) {
+	exit usage();
+}
 
+### check mandatory
+if ($filename_input eq "") {
+	print "\n","input file name should be given!","\n\n";
+	usage();
+	exit;
+}
+if ($filename_output eq "") {
+	print "\n","output file name should be given!","\n\n";
+	usage();
+	exit;
+}
 
-### read file 
-
+### read input file into an array of array
 open(IFILE,$filename_input) or die "unable to open the file\n";
-#create a list to store data from the input
 my (@mass_data,@line);
 my ($line,$line_array,$mass_data);
-
-
+my $ion_with_each;
 while ($line_array = <IFILE>) {
 	chomp($line_array);
 	@line = split ("\t",$line_array);
@@ -58,20 +68,12 @@ while ($line_array = <IFILE>) {
 	}
 }
 close IFILE;
-#print $mass_data[0][0],"\t",$mass_data[0][5],"\n";
 
-###################################################### 
 
-### -mr-max -mr-min Given mass range and report number of peptides
+##################################################
+############## ion pattern match #################
+##################################################
 
-my $total_pep;
-for ( my $i=0;$i< @mass_data;$i++ ) {
-	if ($mass_data[$i][2] >= $mass_range_min and $mass_data[$i][2] <= $mass_range_max) {
-		$total_pep += $mass_data[$i][1];
-	}
-}
-
-### match ion pattern
 sub get_mass_start_with {
 	my (@data) = @_;
 	my (@newdata);
@@ -83,11 +85,9 @@ sub get_mass_start_with {
 				$newdata[$num][$j] = $data[$i][$j];
 			}
 			$num++;
-			#print $flag,"\t",scalar(@newdata),"\n";
 		}
 	} 
 	return @newdata;
-	print $num;
 }
 
 sub get_mass_include {
@@ -98,11 +98,9 @@ sub get_mass_include {
 	for (my $i =0; $i<@data;$i++) {
 		if ($data[$i][5] =~ /$amino/) {			
 			for (my $j=0; $j<6; $j++) {
-				$newdata[$num][$j] = $data[$i][$j];
-				
+				$newdata[$num][$j] = $data[$i][$j];				
 			}
 			$num++;
-			#print $num,"\t",scalar(@newdata),"\n";
 		}
 	} 
 	return @newdata;
@@ -110,78 +108,71 @@ sub get_mass_include {
 
 if ($ion_start ne "") {
 	@mass_data = get_mass_start_with(@mass_data);
-	#print $mass_data[1][0],"\t",$mass_data[1][1],"\n";
-	#print scalar(@mass_data);
 }
 
-for (my $i=0;$i<@ion_with;$i++) {
-	$ion_with_each = $ion_with[$i];
-	#print $ion_with_each,"\t";
-	#print scalar(@ion_with),"\n";
+if (scalar(@ion_with) > 0) {
+	for (my $i=0;$i<@ion_with;$i++) {
+	my $ion_with_each = $ion_with[$i];
 	@mass_data = get_mass_include(@mass_data);
-	#print scalar(@mass_data),"\n";
-}
-#print $mass_data[0][0];
-
-
-### convert theoretic mass value to exact mass value by using Da/ppm mass accuracy
-my ($mass_error,$type);
-if (substr($error,length($error)-3,length($error)-1) eq "ppm") {
-	$mass_error  = substr($error,0,length($error)-4);
-	$type = "ppm";
-} else {
-	$mass_error  = substr($error,0,length($error)-3);
-	$type = "Da";
-}
-
-sub Da_error_to_mass {
-	my ($mass_cal) = @_;
-	my ($mass_exact) = $mass_cal + $mass_error;
-	return $mass_exact;
-} 
-
-sub ppm_error_to_mass {
-	my ($mass_cal) = @_;
-	my ($mass_exact) = (10^6 * $mass_cal) / (10^6 - $mass_error);
-	return $mass_exact;
-}
-
-# process getopt of mass error
-
-if ($type eq "ppm") {
-	for (my $i=0;$i< @mass_data;$i++) {
-		$mass_data[$i][2] = ppm_error_to_mass($mass_data[$i][2]);
-	}
-} elsif ($type eq "Da") {
-	for (my $i=0;$i< @mass_data;$i++) {
-		$mass_data[$i][2] = Da_error_to_mass($mass_data[$i][2]);
 	}
 }
 
+###################################################
+############# process mass error ##################
+###################################################
 
-### report peptides counts in m/z ranges by bins
-#calculate m/z values
+#convert therotic mass value into exact mass value by using Da/ppm mass accuracy
+if ($error != 0) {
+	my ($mass_error,$type);
+	if (substr($error,length($error)-3,length($error)-1) eq "ppm") {
+		$mass_error  = substr($error,0,length($error)-4);
+		$type = "ppm";
+	} elsif (substr($error,length($error)-2,length($error)-1) eq "Da") {
+		$mass_error  = substr($error,0,length($error)-3);
+		$type = "Da";
+		if ($type eq "ppm") {
+			for (my $i=0;$i< @mass_data;$i++) {
+				$mass_data[$i][2] = ppm_error_to_mass($mass_data[$i][2]);
+			}
+		} elsif ($type eq "Da") {
+			for (my $i=0;$i< @mass_data;$i++) {
+				$mass_data[$i][2] = Da_error_to_mass($mass_data[$i][2]);
+			}
+		}
+	# check if unit of mass error has been given	
+	} else {
+		print "\n","unit of mass error is not given or not given correctly!","\n\n";
+		exit usage();
+	}
+	sub Da_error_to_mass {
+		my ($mass_cal) = @_;
+		my ($mass_exact) = $mass_cal + $mass_error;
+		return $mass_exact;
+	} 
+	sub ppm_error_to_mass {
+		my ($mass_cal) = @_;
+		my ($mass_exact) = (10^6 * $mass_cal) / (10^6 - $mass_error);
+		return $mass_exact;
+	}
+}
+
+
+###################################################
+############# sliding window on bins ##############
+###################################################
+
+### calculate m/z values on all data
 for (my $i=0;$i< @mass_data;$i++) {
 	$mass_data[$i][6] = $mass_data[$i][2]/$mass_data[$i][3];
 }
-#sort mass data by m/z values
-#print scalar(@mass_data);
-#for (my $i=0;$i< 5;$i++) {
-#	for (my $j=0;$j<7;$j++) {
-#		print $mass_data[$i][$j],"\t";
-#	}
-#	print "\n";
-#}
+### sort mass data by m/z values
+@mass_data = sort {$a->[6] <=> $b->[6]} @mass_data;
 
+### if user doesn't define the mass range --> output all the m/z values
+$mass_range_min = $mass_data[0][6];
+$mass_range_max = $mass_data[scalar(@mass_data)-1][6];
 
-
-my @new_mass_data = sort {$a->[6] <=> $b->[6]} @mass_data;
-@mass_data = @new_mass_data;
-
-
-
-###### sliding windows
-
+### report peptides counts in m/z ranges by bins
 my @pepcounts_mz; # array for saving results
 my $first_half_pep_counts = 0;
 my $second_half_pep_counts = 0;
@@ -218,7 +209,7 @@ for (my $i=1;$i<@mass_data-1;$i++) {
 	}
 }
 
-# generate the remained bins in case that the user defined range beyonds the m/z value
+### generate the remained bins in case that the user defined range beyonds the m/z value
 while ($max <= $mass_range_max + $bin_size/2) {
 	$pepcounts_mz[$bin_counts-1][0] = $min;
 	$pepcounts_mz[$bin_counts-1][1] = 0;
@@ -227,10 +218,11 @@ while ($max <= $mass_range_max + $bin_size/2) {
 	$max = $min + ($bin_size/2);
 }
 
-print scalar(@mass_data);
 
-######################################################
-#output
+###################################################
+###################### output #####################
+###################################################
+
 open (OFILE,'>',$filename_output);
 print OFILE "m/z values","\t","peptides number","\t","(bin size = ${bin_size})","\n";
 	for (my $i=0;$i<@pepcounts_mz;$i++) {
@@ -238,12 +230,12 @@ print OFILE "m/z values","\t","peptides number","\t","(bin size = ${bin_size})",
 	}
 close OFILE;
 
-
-
-
-
-
-
+print 
+	"Generate output file successfully!","\n",
+	"mass data counts:","\t",scalar(@mass_data),"\n",
+	"mass range:","\t",$mass_range_min," - ",$mass_range_max,"\n",
+	"bin size:","\t",$bin_size,"\n",
+	"mass error:","\t",$error,"\n";
 
 
 
