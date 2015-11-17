@@ -432,6 +432,9 @@ foreach (@ORF_F6) {
         $ORF_count6++;
 }
 
+foreach (@ORF_F6) {
+        print "$_";
+{
 #$file_count++;
 
 close OUTPUT;
