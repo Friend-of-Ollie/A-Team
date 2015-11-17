@@ -1,7 +1,7 @@
-#!/usr/bin/perl –w 
-# Read a FASTA file and extract data 
+#!/usr/bin/perl -w
+# Read a FASTA file and extract data
 use Getopt::Std;
-use strict; 
+use strict;
 use vars qw($opt_s);
 getopts('abt:s:');
 use Data::Dumper;
@@ -28,128 +28,135 @@ my %s2a = (A =>  71.08, C => 103.14, D => 115.09, E => 129.12,
 my %Masshash ;
 my $masschoice ;
 my $value ;
+my @filedata= ();
+my @heads = ("1");
+my @pvalue = ("M");
+my @output = ("Peptide_name\t\tpeptide\t\tMass-to-Charge\t\tz\t\tP\t\tSequence\n");
+my @sequens = ();
+my $filename ;
 
 #hash choice and error trapping of failure to specify
 if ($hashchoice == 0){
-	print "error - no mass charge value defined \n"	;
-	print "Please enter -s 1 for monoisotropic or -s 2 for average mass \n";
-	print " charge values. ";
-	die;
+        print "error - no mass charge value defined \n" ;
+        print "Please enter -s 1 for monoisotropic or -s 2 for average mass \n";
+        print " charge values. ";
+        die;
 }
 elsif ($hashchoice == 1){
-	print "MONOISOTROPIC VALUES CHOSEN \n";
-	%Masshash = %s2m ;
-	$masschoice = "monoisotropic" ;
-	$value = 18.0106 ;
+        print "MONOISOTROPIC VALUES CHOSEN \n";
+        %Masshash = %s2m ;
+        $masschoice = "monoisotropic" ;
+        $value = 18.0106 ;
 }
 elsif ($hashchoice == 2){
-	print "AVERAGE MASS VALUES CHOSEN \n";
-	%Masshash = %s2a ;
-	$masschoice = "average mass" ;
-	$value = 18.0153 ;
+        print "AVERAGE MASS VALUES CHOSEN \n";
+        %Masshash = %s2a ;
+        $masschoice = "average mass" ;
+        $value = 18.0153 ;
 }
 else {
-	print "unknown error!!! ";
-	die;
+        print "unknown error!!! ";
+        die;
 }
 
-my @filedata= ();
-my @heads = ("1");
-my @sequens = ();
-my $filename ;
 #kill script if no filename is provided
-my $filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
+$filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
 
 #body of script
 
-@filedata= getfile($filename ); 
+@filedata= getfile($filename );
 
-dataextract(@filedata ); 
+dataextract(@filedata );
 
 massanal (@sequens, @heads );
 
 exit;
 
 #subroutine for getting data from a file
-sub getfile { 
-	my($file )= @_ ; 
-	my @filedata = (); 
+sub getfile {
+        my($file )= @_ ;
+        my @filedata = ();
 
-	open(IFILE,$file ) or die "Can't open file \"$filename\"\n"; 
-	@filedata = <IFILE>; 
-	close IFILE;
-	return @filedata ; 
-	} 
+        open(IFILE,$file ) or die "Can't open file \"$filename\"\n";
+        @filedata = <IFILE>;
+        close IFILE;
+        return @filedata ;
+        }
 
 # Subroutine to extract FASTA sequence data from the array made from file
-sub dataextract { 
-	my( @fastafile )= @_ ; 
-	my $string = "";
-	my $line ;
-	my $peptide ;
-	
-	foreach $line (@fastafile ){
+sub dataextract {
+        my( @fastafile )= @_ ;
+        my $string = "";
+        my $line ;
+        my $peptide ;
+        my $pvalue ;
+
+        foreach $line (@fastafile ){
 #extract header and peptide info
-				if ($line =~ /^>/){
-					chomp ($line );
-					$string = $line ;
-					push (@heads, $string );
-					}
-				else {
-					$peptide = $line ;
-					push (@sequens, $peptide );	
-					}
-				}
-#	print Dumper $datahash{$string}; - debugging functions
-# test function to see if it worked 
-#	print "here are the headers: ", @heads, " \n";
-#	print scalar (@heads );
-#	print "here are the sequences: ", @sequens, " \n" ;
-#	print scalar (@sequens );
-	return @heads;
-	return @sequens;
-	}
+                                if ($line =~ /^>/){
+                                        chomp ($line );
+                                        $string = $line ;
+                                        push (@heads, $string );
+                                        }
+                                else {
+                                        $peptide = $line ;
+                                        push (@sequens, $peptide );
+                                        }
+                                }
+foreach $_ (@heads){
+        if ($_ =~ "missed cleavage"){
+        ++$pvalue;
+        push (@pvalue, $pvalue);
+        $pvalue = "0";
+}
+        else{
+        $pvalue = "0";
+        push (@pvalue, $pvalue);
+}
+}
+        return @pvalue;
+        return @heads;
+        return @sequens;
+        }
 
 
 #subroutine for calculating the mass to charge ratios of peptides
 sub massanal {
-	my $mtc ;
-	my $line ;
-	my @readout ;
-	my $count ;
-	my $seq ;
-	my @mtc ;
-	my $fm ;
-	my $mc ;
-	my $Pvalue ;
+        my $mtc ;
+        my $line ;
+        my @readout ;
+        my $count ;
+        my $seq ;
+        my @mtc ;
+        my $fm ;
+        my $mc ;
+        my $ovalue ;
 
-#print @sequens ; - debugging functions
-#print scalar (@sequens) ;
-open (my $fh, ">", "$filename $masschoice anal.pepmasses");
 # process the array of peptide sequences, split each element and count
-foreach $_ (@sequens ){	
-		$count++ ;
-		@mtc = split (//, $_ );
-		$mc = 1 + $value ;
-		#refer each aa in peptide to hash and add aa count 
-		foreach $_ (@mtc ){
-				push (@readout,  $_ );
-				my $average_x = $Masshash{$_};
-				#print "amino acid $_ of mass $Masshash{$_} or $average_x \n";
-				if ($average_x) {
-						$mtc += $average_x ;
-						}
-				}
-		$fm = $mtc + $mc;
-		#output to file
-		printf $fh "Peptide_name\t\tpeptide\tMass-to-Charge\t z\t P\tSequence\n" ;
-		printf $fh " @heads[$count] \t $count \t  $fm  \t 1 \t 0 \t @readout \n" ;
-		#clear counting elements to avoid culmulative count  
-		@readout=() ;		
-		$fm=0 ;
-		$mc=0;
-		$mtc=0;
-		}
+foreach $_ (@sequens ){
+                $count++ ;
+                @mtc = split (//, $_ );
+                $mc = 1 + $value ;
+                #refer each aa in peptide to hash and add aa count
+                foreach $_ (@mtc ){
+                                push (@readout,  $_ );
+                                my $average_x = $Masshash{$_};
+                                                if ($average_x) {
+                                                $mtc += $average_x ;
+                                                }
+                                }
+                $fm = $mtc + $mc;
+                #output to file
+                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t @readout \n" ;
+                push (@output, $ovalue);
+                #clear counting elements to avoid culmulative count
+                @readout=() ;
+                $fm=0 ;
+                $mc=0;
+                $mtc=0;
+}
+open (my $fh, ">", "$filename\_$masschoice\_anal.pepmasses");
+print $fh @output ;
+print "FILE $filename\_$masschoice\_anal.pepmasses written \n" ;
 close $fh;
-print "FILE $filename $masschoice anal.pepmasses written \n" ;
 }
