@@ -12,7 +12,6 @@ GetOptions(
 	'a'=>\my $a,
 	'i=s'=>\(my $ifilename=""),
 	'l'=>\my $l,
-	'man'=> \my $man_page,
 	'o:s'=>\(my $ofilename),
 	't'=>\my $t,
 	'v'=>\my $v
@@ -21,12 +20,8 @@ my $title;
 #Initialise Getopt options
 #i is mandatory (input file name)
 #o is optional (modified output file name)
-if ($man_page){
-	print "\nWelcome to Group A's Sequence analysis pipeline.\nThis is the second element of the pipeline, coded by Cecil Barnett-Neefs.\nThis program will recieve data from files produced by Program 1 and simulate\nenzyme digestion of the polypeptide according to the user's choice, currently\nsupported enzymes are:\n-Endoproteinase Arg-C\t(Arginine)\t(A)\n-Endoproteinase Lys-C\t(Lysine)\t(L)\n-Trypsin\t(Arginine and Lysine)\t(T)\n-V8 protease\t(Glutamate)\t\t(V)\nHowever, the program has a modular design to support future additions.\n\nWhen an enzyme and file have been chosen, the program will read through the fileand extract FASTA entries, converting them to single-line FASTAs and splitting\nthem based on the enzyme choice. Once complete, the program will produce a time-stamped file with the enzyme choice in its name, containing all complete and\nmissed digestion fragments.\n\nShould the input file contain more than one FASTA entry, the digester program\nwill process each one sequentially, producing the complete and missed digestion fragments for each entry before moving onto the next.";
-	exit;
-}
 if (!$ifilename && !$a && !$l && !$t && !$v) {
-	print "Error: Arguments missing!\n";
+	print "Error: Arguments missing!\nP_2 [-i][your file] [-a] [-l] [-t] [-v] [-o][custom output name] (optional, uses timestamp as default)\n";
 	exit;
 }
 elsif (!$ifilename) {
