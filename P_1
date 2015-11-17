@@ -328,7 +328,7 @@ while ($trs3 =~/\*/g) {
 foreach my $s ( @s ) {
         foreach my $e ( @e ) {
                 if ($e > $s) {
-                        push @ORF_F5, substr $trs3, $s, $e-$s;
+                        push @ORF_F6, substr $trs3, $s, $e-$s;
                 }
         }
 }
@@ -428,13 +428,10 @@ foreach (@ORF_F5) {
 }
 foreach (@ORF_F6) {
         my $ORF_length = length ($_);
-        print "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
+        print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
         $ORF_count6++;
 }
 
-foreach (@ORF_F6) {
-        print "$_";
-{
 #$file_count++;
 
 close OUTPUT;
