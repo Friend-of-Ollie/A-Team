@@ -81,7 +81,7 @@ my ($organism,
     $fastafile,
     $file_count,);
 
-$file_count = 1;
+#$file_count = 1;
 
 #opens the fasta files or gives the relevant error message
 
@@ -213,6 +213,8 @@ $trs3 = join '' , @trs3;
 #part of the tranlated string to be processed. Substring is then used to
 #push the relevant part of the string to an array.
 
+#first ORF
+
 my (@s, @e);
 
 while ($tfs1 =~/M/g){
@@ -233,6 +235,8 @@ foreach my $s ( @s ) {
 
 @ORF_F1 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F1;
 
+#second ORF
+
 while ($tfs2 =~/M/g){
         push @s, $-[0];
 }
@@ -250,6 +254,86 @@ foreach my $s ( @s ) {
 }
 
 @ORF_F2 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F2;
+
+#third ORF
+
+while ($tfs3 =~/M/g){
+        push @s, $-[0];
+}
+
+while ($tfs3 =~/\*/g) {
+        push @e, $+[0];
+}
+
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F3, substr $tfs3, $s, $e-$s;
+                }
+        }
+}
+
+@ORF_F3 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F3;
+
+#fourth ORF (reverse)
+
+while ($trs1 =~/M/g){
+        push @s, $-[0];
+}
+
+while ($trs1 =~/\*/g) {
+        push @e, $+[0];
+}
+
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F4, substr $trs1, $s, $e-$s;
+                }
+        }
+}
+
+@ORF_F4 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F4;
+
+#fith ORF (reverse)
+
+while ($trs2 =~/M/g){
+        push @s, $-[0];
+}
+
+while ($trs2 =~/\*/g) {
+        push @e, $+[0];
+}
+
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F5, substr $trs2, $s, $e-$s;
+                }
+        }
+}
+
+@ORF_F5 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F5;
+
+#sixth ORF (reverse)
+
+while ($trs3 =~/M/g){
+        push @s, $-[0];
+}
+
+while ($trs3 =~/\*/g) {
+        push @e, $+[0];
+}
+
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F5, substr $trs3, $s, $e-$s;
+                }
+        }
+}
+
+@ORF_F6 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F6;
 
 #foreach (@ORF_F2){
 #        print ",$_,";
@@ -282,18 +366,25 @@ foreach (@ORF_F2) {
         @ORF_F2 = grep length($_) <= $upper_bound, @ORF_F2;
 }
 
-#foreach (@ORF_F3) {
-#       @ORF_F3 = grep length($_) >= 300, @ORF_F3;
-#}
-#foreach (@ORF_F4) {
-#        @ORF_F4 = grep length($_) >= 300, @ORF_F4;
-#}
-#foreach (@ORF_F5) {
-#        @ORF_F5 = grep length($_) >= 300, @ORF_F5;
-#}
-#foreach (@ORF_F6) {
-#        @ORF_F6 = grep length($_) >= 300, @ORF_F6;
-#}
+foreach (@ORF_F3) {
+        @ORF_F3 = grep length($_) >= $lower_bound, @ORF_F3;
+        @ORF_F3 = grep length($_) <= $upper_bound, @ORF_F3;
+}
+
+foreach (@ORF_F4) {
+        @ORF_F4 = grep length($_) >= $lower_bound, @ORF_F4;
+        @ORF_F4 = grep length($_) <= $upper_bound, @ORF_F4;
+}
+
+foreach (@ORF_F5) {
+        @ORF_F5 = grep length($_) >= $lower_bound, @ORF_F5;
+        @ORF_F5 = grep length($_) <= $upper_bound, @ORF_F5;
+}
+
+foreach (@ORF_F6) {
+        @ORF_F6 = grep length($_) >= $lower_bound, @ORF_F6;
+        @ORF_F6 = grep length($_) <= $upper_bound, @ORF_F6;
+}
 
 close FH;
 
@@ -320,33 +411,33 @@ foreach (@ORF_F2) {
         print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
         $ORF_count2++;
 }
-#foreach (@ORF_F3) {
-#        my $ORF_length = length ($_);
-#        print "$organism"."_ORF_F3_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-#        $ORF_count++;
-#}
-#foreach (@ORF_F4) {
-#        my $ORF_length = length ($_);
-#        print "$organism"."_ORF_F4_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-#        $ORF_count++;
-#}
-#foreach (@ORF_F5) {
-#        my $ORF_length = length ($_);
-#        print "$organism"."_ORF_F5_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-#        $ORF_count++;
-#}
-#foreach (@ORF_F6) {
-#        my $ORF_length = length ($_);
-#        print "$organism"."_ORF_F6_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-#        $ORF_count++;
-#}
+foreach (@ORF_F3) {
+        my $ORF_length = length ($_);
+        print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length: ".($ORF_length)."\nM$_\n";
+        $ORF_count3++;
+}
+foreach (@ORF_F4) {
+        my $ORF_length = length ($_);
+        print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length: ".($ORF_length)."\nM$_\n";
+        $ORF_count4++;
+}
+foreach (@ORF_F5) {
+        my $ORF_length = length ($_);
+        print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length: ".($ORF_length)."\nM$_\n";
+        $ORF_count5++;
+}
+foreach (@ORF_F6) {
+        my $ORF_length = length ($_);
+        print "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
+        $ORF_count6++;
+}
 
-$file_count++;
+#$file_count++;
 
 close OUTPUT;
 
 #}
 
-print "$file_count\n";
+#print "$file_count\n";
 
 exit;
