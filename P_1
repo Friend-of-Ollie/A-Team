@@ -2,6 +2,7 @@
 
 use warnings;
 use strict;
+#use diagnostics;
 use Getopt::Long;
 #use Getopt::Std;
 
@@ -14,15 +15,19 @@ use Getopt::Long;
 #}
 
 my $files;
-my $frame_start;
-my $frame_end;
+my $length_min;
+my $length_max;
 my $ofilename;
 my $man_page;
+my $frame_start;
+my $frame_end;
 
 GetOptions ('man' => \$man_page ,
             'f=s' => \$files , 
-            'frame-start=i' => \$frame_start,
-            'frame-end=i' => \$frame_end,
+            'lmin=i' => \$length_min,
+            'lmax=i' => \$length_max,
+            'fstart=i' => \$frame_start,
+            'fend=i' => \$frame_end,
             'o=s' => \$ofilename) or die "Usage:\nP_1 [--man]\t [--files]\t[--frame]";
 
 #if ($man_page){
@@ -101,14 +106,31 @@ while (<FH>) {
 @name_seq = split /sequence/, $chomped_fasta;
 $organism = $name_seq [0];
 
-#cut if the user specified a frame
-
-#initiate forward and reverse strands and get rid of white spaces
+#initiate forward and reverse strands
 
 $fs1 = uc $name_seq [1];
-$fs1 =~ s/\s//g;
-$rs1 = reverse($fs1 );
-$rs1 =~ s/\s//g;
+#$fs1 =~ s/^\s+|\s+$//g;
+
+#cut if the user specified a frame
+
+if ($frame_start) {
+    $fs1 = substr $fs1, $frame_start;
+}else {
+        print "\nYou have not specified a starting point in the sequence\n";
+        $frame_start=1
+}
+
+if ($frame_end) {
+    $fs1 = substr $fs1, $frame_start, (length ($fs1) - $frame_end);
+}else {
+        print "\nYou have not specified a ending point in the sequence\n";
+}
+
+
+#initiate reverse strand
+
+$rs1 = reverse($fs1);
+#$rs1 =~ s/^\s+|\s+$//g;
 
 #split into the 3 reading frames
 
@@ -183,51 +205,83 @@ $trs1 = join '' , @trs1;
 $trs2 = join '' , @trs2;
 $trs3 = join '' , @trs3;
 
-#split translated sequences into ORF
+#split translated sequences into ORF and cut
+#at ever stop '*' codon. The @s loop contains the remaining lines
+#as the string is processed using the $- special variable.
+#the @e array contains the previously matched parterns using the $+ special
+#variable. By removing $s from $e, we can point to the remaing
+#part of the tranlated string to be processed. Substring is then used to
+#push the relevant part of the string to an array.
 
 my (@s, @e);
 
-push @s, $-[0] while $tfs1 =~/M/g;
-push @e, $+[0] while $tfs1 =~/\*/g;
+while ($tfs1 =~/M/g){
+        push @s, $-[0];
+}
 
-for my $s ( @s ) {
-        for my $e ( @e ) {
-            push @ORF_F1, substr $tfs1, $s, $e-$s if $e > $s;
+while ($tfs1 =~/\*/g) {
+        push @e, $+[0];
+}
+
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F1, substr $tfs1, $s, $e-$s;
+                }
         }
 }
 
-#foreach (@ORF_F1) {
-#        @ORF_F1 = grep m/M.*\*/, @ORF_F1;
-#}
-foreach (@ORF_F1) {
-        print ",$_,";
+@ORF_F1 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F1;
+
+while ($tfs2 =~/M/g){
+        push @s, $-[0];
 }
 
-#ignore ORFs less than 100 amino acid long
+while ($tfs2 =~/\*/g) {
+        push @e, $+[0];
+}
 
-#my $upper_bound;
-#my $lower_bound;
+foreach my $s ( @s ) {
+        foreach my $e ( @e ) {
+                if ($e > $s) {
+                        push @ORF_F2, substr $tfs1, $s, $e-$s;
+                }
+        }
+}
 
-#if ($frame_start) {
-#    $lower_bound= $frame_start;
-#} else {
-#        $lower_bound = 0;
+@ORF_F2 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F2;
+
+#foreach (@ORF_F2){
+#        print ",$_,";
 #}
 
-#if ($frame_end) {
-#    $upper_bound = $frame_end;
-#}else {
-#        $upper_bound=length ($tfs1);
-#}
+#ignore ORFs which are not the query length.
 
-#foreach (@ORF_F1) {
-#       @ORF_F1 = grep length($_) >= $lower_bound, @ORF_F1;
-#       @ORF_F1 = grep length($_) <= $upper_bound, @ORF_F1;
-#}
+my $upper_bound;
+my $lower_bound;
 
-#foreach (@ORF_F2) {
-#        @ORF_F2 = grep length($_) >= 300, @ORF_F2;
-#}
+if ($length_min) {
+    $lower_bound= $length_min;
+} else {
+        $lower_bound = 0;
+}
+
+if ($length_max) {
+    $upper_bound = $length_max;
+}else {
+        $upper_bound=length ($tfs1);
+}
+
+foreach (@ORF_F1) {
+       @ORF_F1 = grep length($_) >= $lower_bound, @ORF_F1;
+       @ORF_F1 = grep length($_) <= $upper_bound, @ORF_F1;
+}
+
+foreach (@ORF_F2) {
+        @ORF_F2 = grep length($_) >= $lower_bound, @ORF_F2;
+        @ORF_F2 = grep length($_) <= $upper_bound, @ORF_F2;
+}
+
 #foreach (@ORF_F3) {
 #       @ORF_F3 = grep length($_) >= 300, @ORF_F3;
 #}
@@ -248,6 +302,11 @@ close FH;
 open( OUTPUT, '>', "$ofilename");
 
 my $ORF_count1=1;
+my $ORF_count2=1;
+my $ORF_count3=1;
+my $ORF_count4=1;
+my $ORF_count5=1;
+my $ORF_count6=1;
 
 #print OUTPUT "\n$filename\n";
 
@@ -256,11 +315,11 @@ foreach (@ORF_F1) {
         print OUTPUT "$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
         $ORF_count1++;
 }
-#foreach (@ORF_F2) {
-#        my $ORF_length = length ($_);
-#        print "$organism"."_ORF_F2_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
-#        $ORF_count++;
-#}
+foreach (@ORF_F2) {
+        my $ORF_length = length ($_);
+        print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
+        $ORF_count2++;
+}
 #foreach (@ORF_F3) {
 #        my $ORF_length = length ($_);
 #        print "$organism"."_ORF_F3_".($ORF_count)."_length: ".($ORF_length)."\nM$_\n";
