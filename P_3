@@ -6,9 +6,9 @@ use vars qw($opt_s);
 getopts('abt:s:');
 use Data::Dumper;
 
-#set a variable for hash choice
+# set a variable for hash choice
 my $hashchoice = (defined $opt_s ) ? $opt_s: 0;
-#mass hashes
+# mass hashes
 my %s2m = (A =>  71.0371, C => 103.0092, D => 115.0269, E => 129.0426,
         F => 147.0684, G =>  57.0215, H => 137.0589, I => 113.0841,
         K => 128.0950, L => 113.0841, M => 131.0405, N => 114.0429,
@@ -25,6 +25,7 @@ my %s2a = (A =>  71.08, C => 103.14, D => 115.09, E => 129.12,
         '\s' => 0.0, "*" => 0.0
        );
 
+# Initialise variables
 my %Masshash ;
 my $masschoice ;
 my $value ;
@@ -35,7 +36,7 @@ my @output = ("Peptide_name\t\tpeptide\t\tMass-to-Charge\t\tz\t\tP\t\tSequence\n
 my @sequens = ();
 my $filename ;
 
-#hash choice and error trapping of failure to specify
+# hash choice and error trapping of failure to specify
 if ($hashchoice == 0){
         print "error - no mass charge value defined \n" ;
         print "Please enter -s 1 for monoisotropic or -s 2 for average mass \n";
@@ -59,10 +60,10 @@ else {
         die;
 }
 
-#kill script if no filename is provided
+# kill script if no filename is provided
 $filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
 
-#body of script
+# body of script
 
 @filedata= getfile($filename );
 
@@ -72,7 +73,7 @@ massanal (@sequens, @heads );
 
 exit;
 
-#subroutine for getting data from a file
+# subroutine for getting data from a file
 sub getfile {
         my($file )= @_ ;
         my @filedata = ();
@@ -92,7 +93,7 @@ sub dataextract {
         my $pvalue ;
 
         foreach $line (@fastafile ){
-#extract header and peptide info
+# extract header and peptide info
                                 if ($line =~ /^>/){
                                         chomp ($line );
                                         $string = $line ;
@@ -103,6 +104,7 @@ sub dataextract {
                                         push (@sequens, $peptide );
                                         }
                                 }
+# calculate p
 foreach $_ (@heads){
         if ($_ =~ "missed cleavage"){
         ++$pvalue;
@@ -120,7 +122,7 @@ foreach $_ (@heads){
         }
 
 
-#subroutine for calculating the mass to charge ratios of peptides
+# Subroutine for calculating the mass to charge ratios of peptides
 sub massanal {
         my $mtc ;
         my $line ;
@@ -137,7 +139,7 @@ foreach $_ (@sequens ){
                 $count++ ;
                 @mtc = split (//, $_ );
                 $mc = 1 + $value ;
-                #refer each aa in peptide to hash and add aa count
+                # refer each aa in peptide to hash and add aa count
                 foreach $_ (@mtc ){
                                 push (@readout,  $_ );
                                 my $average_x = $Masshash{$_};
@@ -146,15 +148,17 @@ foreach $_ (@sequens ){
                                                 }
                                 }
                 $fm = $mtc + $mc;
-                #output to file
+                # generate output
                 $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t @readout \n" ;
                 push (@output, $ovalue);
-                #clear counting elements to avoid culmulative count
+                # clear counting elements to avoid culmulative count
                 @readout=() ;
                 $fm=0 ;
                 $mc=0;
                 $mtc=0;
 }
+
+# write to file
 open (my $fh, ">", "$filename\_$masschoice\_anal.pepmasses");
 print $fh @output ;
 print "FILE $filename\_$masschoice\_anal.pepmasses written \n" ;
