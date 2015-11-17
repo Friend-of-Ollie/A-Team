@@ -1,443 +1,178 @@
 #!/usr/bin/perl
 
-use warnings;
+# enzyme_digester_IX.pl
+#  - digests amino acid sequences
 use strict;
-#use diagnostics;
-use Getopt::Long;
-#use Getopt::Std;
-
-#process command line arguments
-
-#my $ARGV = @ARGV;
-#if ($ARGV == 0) {
-#    print "You must enter arguments!\nP_1 [--man] for help\nP_1 [--files][your files] to start\n";
-#    exit;
-#}
-
-my $files;
-my $length_min;
-my $length_max;
-my $ofilename;
-my $man_page;
-my $frame_start;
-my $frame_end;
-
-GetOptions ('man' => \$man_page ,
-            'f=s' => \$files , 
-            'lmin=i' => \$length_min,
-            'lmax=i' => \$length_max,
-            'fstart=i' => \$frame_start,
-            'fend=i' => \$frame_end,
-            'o=s' => \$ofilename) or die "Usage:\nP_1 [--man]\t [--files]\t[--frame]";
-
-#if ($man_page){
-#        my $man = "\nWelcome to Group A's Sequence analysis pipeline.
-#        this is the first element of the pipeline, coded by Maximilien Rothier Bautzer.
-#        \nThis program will open and process the fasta file. It will begin by separating the
-#        DNA into 6 reading frames, 3 in the forward strand and 3 in the reverse strand.
-#        Each of those strands are then translated into proteins using the hash. They are then
-#        split at start and stop codons. In the protein sequence they are noted as 'M' (methioin)
-#        for the start codon and a simple '*' for stop codons. An exeption is made for codons containing 'n',
-#        which denotes that we are unsure about that nucleotide position. Those string values
-#        are pushed into arrays (one for each reading frames). The code then looks for array elements
-#        shorter than 50 nucleotides, which is too small to be considered relevant. Those small elements
-#        are then deleted. The array values are then printed in the appropriate format. Information such
-#        as Open reading frame (ORF) length and which frame it was found in is provided, along with the name of the organism.
-#        Frames 1, 2 and 3 are from the forward strand and frames 4,5, and 6 are in the reverse strand.\n";
-#        $man =~ s/(.{1,80})/$1\n/gs;
-#        print $man;
-#        exit;
-#}
-
-#hash for translation
-
-my %DNAtoAA = (
-        "AAA" => "K", "AAC" => "N", "AAG" => "K", "AAT" => "N",
-        "ACA" => "T", "ACC" => "T", "ACG" => "T", "ACT" => "T",
-        "AGA" => "R", "AGC" => "S", "AGG" => "R", "AGT" => "S",
-        "ATA" => "I", "ATC" => "I", "ATG" => "M", "ATT" => "I",
-        "CAA" => "Q", "CAC" => "H", "CAG" => "Q", "CAT" => "H",
-        "CCA" => "P", "CCC" => "P", "CCG" => "P", "CCT" => "P",
-        "CGA" => "R", "CGC" => "R", "CGG" => "R", "CGT" => "R",
-        "CTA" => "L", "CTC" => "L", "CTG" => "L", "CTT" => "L",
-        "GAA" => "E", "GAC" => "D", "GAG" => "E", "GAT" => "D",
-        "GCA" => "A", "GCC" => "A", "GCG" => "A", "GCT" => "A",
-        "GGA" => "G", "GGC" => "G", "GGG" => "G", "GGT" => "G",
-        "GTA" => "V", "GTC" => "V", "GTG" => "V", "GTT" => "V",
-        "TAA" => "*", "TAC" => "Y", "TAG" => "*", "TAT" => "Y",
-        "TCA" => "S", "TCC" => "S", "TCG" => "S", "TCT" => "S",
-        "TGA" => "*", "TGC" => "C", "TGG" => "W", "TGT" => "C",
-        "TTA" => "L", "TTC" => "F", "TTG" => "L", "TTT" => "F" );
-
-#declare global variables
-
-my ($organism,
-    $chomped_fasta,
-    $fs1, $fs2, $fs3, $rs1, $rs2, $rs3,
-    @ORF_F1, @ORF_F2, @ORF_F3, @ORF_F4, @ORF_F5, @ORF_F6,
-    @tfs1, @tfs2, @tfs3, @trs1, @trs2, @trs3,
-    $tfs1, $tfs2, $tfs3, $trs1, $trs2, $trs3,
-    @sorted_ORF, @name_seq,
-    $fastafile,
-    $file_count,);
-
-#$file_count = 1;
-
-#opens the fasta files or gives the relevant error message
-
-#foreach my $filename (@files) {
-#                open (FH , '<' , $filename) or die "\nFailed to open file $_ $!";
-
-
-#print "which file would you like to open?\n";
-
-$fastafile= $files;
-open ( FH , '<' , $fastafile ) or die "\nFailed to open file $_ $!";
-
-#turn the file into one long string
-
-while (<FH>) {
-        chomp $_;
-        $chomped_fasta .= $_;
+#use strict for good coding
+use Getopt::Long qw(GetOptions);
+#use Getopt for command line style options
+use POSIX qw(strftime);
+#use POSIX for timestamp
+GetOptions(
+	'a'=>\my $a,
+	'i=s'=>\(my $ifilename=""),
+	'l'=>\my $l,
+	'man'=> \my $man_page,
+	'o:s'=>\(my $ofilename),
+	't'=>\my $t,
+	'v'=>\my $v
+) or die "Error: Missing arguments!\n";
+my $title;
+#Initialise Getopt options
+#i is mandatory (input file name)
+#o is optional (modified output file name)
+if ($man_page){
+	print "\nWelcome to Group A's Sequence analysis pipeline.\nThis is the second element of the pipeline, coded by Cecil Barnett-Neefs.\nThis program will recieve data from files produced by Program 1 and simulate\nenzyme digestion of the polypeptide according to the user's choice, currently\nsupported enzymes are:\n-Endoproteinase Arg-C\t(Arginine)\t(A)\n-Endoproteinase Lys-C\t(Lysine)\t(L)\n-Trypsin\t(Arginine and Lysine)\t(T)\n-V8 protease\t(Glutamate)\t\t(V)\nHowever, the program has a modular design to support future additions.\n\nWhen an enzyme and file have been chosen, the program will read through the fileand extract FASTA entries, converting them to single-line FASTAs and splitting\nthem based on the enzyme choice. Once complete, the program will produce a time-stamped file with the enzyme choice in its name, containing all complete and\nmissed digestion fragments.\n\nShould the input file contain more than one FASTA entry, the digester program\nwill process each one sequentially, producing the complete and missed digestion fragments for each entry before moving onto the next.";
+	exit;
 }
-
-#extract the organism name
-
-@name_seq = split /sequence/, $chomped_fasta;
-$organism = $name_seq [0];
-
-#initiate forward and reverse strands
-
-$fs1 = uc $name_seq [1];
-#$fs1 =~ s/^\s+|\s+$//g;
-
-#cut if the user specified a frame
-
-if ($frame_start) {
-    $fs1 = substr $fs1, $frame_start;
-}else {
-        print "\nYou have not specified a starting point in the sequence\n";
-        $frame_start=1
+if (!$ifilename && !$a && !$l && !$t && !$v) {
+	print "Error: Arguments missing!\n";
+	exit;
 }
-
-if ($frame_end) {
-    $fs1 = substr $fs1, $frame_start, (length ($fs1) - $frame_end);
-}else {
-        print "\nYou have not specified a ending point in the sequence\n";
+elsif (!$ifilename) {
+	print "Error: Specify filename!\n";
+	exit;
 }
-
-
-#initiate reverse strand
-
-$rs1 = reverse($fs1);
-#$rs1 =~ s/^\s+|\s+$//g;
-
-#split into the 3 reading frames
-
-$fs2 = substr $fs1, 1;
-$fs3 = substr $fs2, 1;
-$rs2 = substr $rs1, 1;
-$rs3 = substr $rs2, 1;
-
-#translate the sequence using the hash, excluding codons containing the (lower case) letter 'n'
-
-for (my $i =0;$i<=length($fs1)-2;$i+=3) {
-        $_= substr $fs1, $i , 3;
-        if (($_ !~ m/(.*n.*|n.*|.*n)/) | (length($_) == 3)) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs1, $translated_value;
-        }
+#Error message if -i (input filename) is not set
+elsif (!$a && !$l && !$t && !$v) {
+	print "Error: Specify enzyme option!\n";
+	exit;
 }
-
-for (my $i =0;$i<=length($fs2)-2;$i+=3) {
-        $_= substr $fs2, $i , 3;
-        if (($_ !~ m/(.*n.*|n.*|.*n)/)| (length ($_) == 3)) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs2, $translated_value;
-        }
+#Error message is no enzyme option is set)
+#Idiot-proofing to force options
+my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
+#Calculate current time in YY-MM-DD_HH-MM-SS format to create unique
+#file names
+if ($ofilename) {
+	$title=$ofilename;
 }
-
-for (my $i =0;$i<=length($fs3)-2;$i+=3) {
-        $_= substr $fs3, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs3, $translated_value;
-        }
+else {
+	$title=$datestring;
 }
-
-for (my $i =0;$i<=length($rs1)-2;$i+=3) {
-        $_= substr $rs1, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs1, $translated_value;
-        }
+#Allows user to set title_enzyme.fasta, else reverts to 
+#datestring_enzyme.fasta
+my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
+#Initialise file reading, fasta single line processing, fragment count
+#and results storage
+#my $ifilename = shift or die "No filename supplied!\n";
+my $data="$ifilename";
+{
+  local $/=undef;
+  open FILE, "$data" or die "Error: Couldn't open file: $!";
+  $info = <FILE>;
+  close FILE;
 }
-
-for (my $i =0;$i<=length($rs2)-2;$i+=3) {
-        $_= substr $rs2, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs2, $translated_value;
-        }
+#Load entire file into program (would use Slurp but it's not on Tal)
+#Consider version with Slurp for later usage?
+$info=~ s/>/<>/g;
+my @fastas = split('<', $info);
+shift @fastas;
+#Locate individual entries within a file by looking for > and splits
+#each into individual array elements
+#Former version inserted _ but this accidentally froze the program
+#when headers naturally used them (Thanks Max(!))
+if ($a) {
+	open($fh, '>', "$title\_Endoproteinase_Arg-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Endoproteinase Arg-C digestion\n\n";
+#Control statement to confirm choice
 }
-
-for (my $i =0;$i<=length($rs3)-2;$i+=3) {
-        $_= substr $rs3, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs3, $translated_value;
-        }
+if ($l) {
+	open($fh, '>', "$title\_Endoproteinase_Lys-C.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Endoproteinase Lys-C digestion\n\n";
+#Control statement to confirm choice
 }
-
-#merge the translated sequences into one long string
-
-$tfs1 = join '' , @tfs1;
-$tfs2 = join '' , @tfs2;
-$tfs3 = join '' , @tfs3;
-
-$trs1 = join '' , @trs1;
-$trs2 = join '' , @trs2;
-$trs3 = join '' , @trs3;
-
-#split translated sequences into ORF and cut
-#at ever stop '*' codon. The @s loop contains the remaining lines
-#as the string is processed using the $- special variable.
-#the @e array contains the previously matched parterns using the $+ special
-#variable. By removing $s from $e, we can point to the remaing
-#part of the tranlated string to be processed. Substring is then used to
-#push the relevant part of the string to an array.
-
-#first ORF
-
-my (@s, @e);
-
-while ($tfs1 =~/M/g){
-        push @s, $-[0];
+if ($t) {
+	open($fh, '>', "$title\_Trypsin.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "Trypsin digestion\n\n";
+#Control statement to confirm choice
 }
-
-while ($tfs1 =~/\*/g) {
-        push @e, $+[0];
+if ($v) {
+	open($fh, '>', "$title\_V8_protease.fasta");
+#Open file to save to, using date and enzyme choice to make unique
+#file name
+	print "V8 protease digestion\n\n";
+#Control statement to confirm choice
 }
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F1, substr $tfs1, $s, $e-$s;
-                }
-        }
+#New enzyme options can be added by c/p-ing and modifying existing code
+#Getopt is not case-sensitive, future commands may need to be more than
+#one character
+foreach my $singlefast (@fastas) {
+	open $resultshandle, '<', \$singlefast;
+#Reads multiline element line by line by treating it as a file (yes, 
+#perl can do that)
+	my ($line, %hash, $header, $seq)=();
+	my ($pepnum, $fragnum)=1;
+#Initialise local variables which need resetting every entry cycle
+	while (defined ($line = <$resultshandle>)) {
+		chomp $line;
+		if ($line=~m/^>/) {
+			$header = $line;
+		}
+#Find entry header and save it
+		else {
+			if ($header) {
+				$hash{$header} .= $line;
+			}
+		}
+	push @headerlist, $header;
+#Push chomped non-header lines into a hash
+	}
+	for $header (keys %hash) {
+		$seq = $hash{$header};
+		if ($a) {
+			$seq=~ s/R(?!P)/R</g;
+		}
+#Endoproteinase Arg-C digestion: cut after R (Arginine), except after 
+#P (Proline)
+		if ($l) {
+			$seq=~ s/K(?!P)/K</g;
+		}
+#Endoproteinase Lys-C digestion: cut after K (Lysine), except after P 
+#(Proline)
+		if ($t) {
+			$seq=~ s/K(?!P)/K</g;
+			$seq=~ s/R(?!P)/R</g;
+		}
+#Trypsin digestion: cut after K (Lysine) and R (Arginine), except 
+#after P (Proline)
+		if ($v) {
+			$seq=~ s/E(?!P)/E</g;
+		}
+#V8 protease digestion: cut after E (Glutamate), except before P 
+#(Proline)
+		my @x_values = split('<', $seq);
+		undef(@values);
+		push(@values, @x_values);
+	}
+#Push data into another array so that it can be moved out of local scope
+	foreach my $val (@values) {
+		print $fh "$header peptide $pepnum\n$val\n";
+		$pepnum++;
+	}
+#Print normal peptide fragments to file
+	$fragcount=scalar(grep $_, @values);
+	$fragcount--;
+	$fragnum=1;
+	until ($currentfragment eq $fragcount) {
+		$fragment=join("",$values[$currentfragment],$values[$currentfragment+1]);
+		$currentfragment++;
+		print $fh "$header missed cleavage fragment $fragnum\n$fragment\n";
+		$fragnum++;
+	}
+	$currentfragment=0;
+#Print missed cleavage fragments to file
+close $resultshandle;
+#Close array element to either move onto the next one or finish
 }
-
-@ORF_F1 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F1;
-
-#second ORF
-
-while ($tfs2 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($tfs2 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F2, substr $tfs1, $s, $e-$s;
-                }
-        }
-}
-
-@ORF_F2 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F2;
-
-#third ORF
-
-while ($tfs3 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($tfs3 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F3, substr $tfs3, $s, $e-$s;
-                }
-        }
-}
-
-@ORF_F3 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F3;
-
-#fourth ORF (reverse)
-
-while ($trs1 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs1 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F4, substr $trs1, $s, $e-$s;
-                }
-        }
-}
-
-@ORF_F4 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F4;
-
-#fith ORF (reverse)
-
-while ($trs2 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs2 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F5, substr $trs2, $s, $e-$s;
-                }
-        }
-}
-
-@ORF_F5 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F5;
-
-#sixth ORF (reverse)
-
-while ($trs3 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs3 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F5, substr $trs3, $s, $e-$s;
-                }
-        }
-}
-
-@ORF_F6 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F6;
-
-#foreach (@ORF_F2){
-#        print ",$_,";
-#}
-
-#ignore ORFs which are not the query length.
-
-my $upper_bound;
-my $lower_bound;
-
-if ($length_min) {
-    $lower_bound= $length_min;
-} else {
-        $lower_bound = 0;
-}
-
-if ($length_max) {
-    $upper_bound = $length_max;
-}else {
-        $upper_bound=length ($tfs1);
-}
-
-foreach (@ORF_F1) {
-       @ORF_F1 = grep length($_) >= $lower_bound, @ORF_F1;
-       @ORF_F1 = grep length($_) <= $upper_bound, @ORF_F1;
-}
-
-foreach (@ORF_F2) {
-        @ORF_F2 = grep length($_) >= $lower_bound, @ORF_F2;
-        @ORF_F2 = grep length($_) <= $upper_bound, @ORF_F2;
-}
-
-foreach (@ORF_F3) {
-        @ORF_F3 = grep length($_) >= $lower_bound, @ORF_F3;
-        @ORF_F3 = grep length($_) <= $upper_bound, @ORF_F3;
-}
-
-foreach (@ORF_F4) {
-        @ORF_F4 = grep length($_) >= $lower_bound, @ORF_F4;
-        @ORF_F4 = grep length($_) <= $upper_bound, @ORF_F4;
-}
-
-foreach (@ORF_F5) {
-        @ORF_F5 = grep length($_) >= $lower_bound, @ORF_F5;
-        @ORF_F5 = grep length($_) <= $upper_bound, @ORF_F5;
-}
-
-foreach (@ORF_F6) {
-        @ORF_F6 = grep length($_) >= $lower_bound, @ORF_F6;
-        @ORF_F6 = grep length($_) <= $upper_bound, @ORF_F6;
-}
-
-close FH;
-
-#print results to file
-
-open( OUTPUT, '>', "$ofilename");
-
-my $ORF_count1=1;
-my $ORF_count2=1;
-my $ORF_count3=1;
-my $ORF_count4=1;
-my $ORF_count5=1;
-my $ORF_count6=1;
-
-#print OUTPUT "\n$filename\n";
-
-foreach (@ORF_F1) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
-        $ORF_count1++;
-}
-foreach (@ORF_F2) {
-        my $ORF_length = length ($_);
-        print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count2++;
-}
-foreach (@ORF_F3) {
-        my $ORF_length = length ($_);
-        print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count3++;
-}
-foreach (@ORF_F4) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count4++;
-}
-foreach (@ORF_F5) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count5++;
-}
-foreach (@ORF_F6) {
-        my $ORF_length = length ($_);
-        print "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count6++;
-}
-
-#$file_count++;
-
-close OUTPUT;
-
-#}
-
-#print "$file_count\n";
-
+#Will run each entry, producing regular fragments, then missed digestion
+#fragments for each cyle
+print "Complete!\n";
+close $fh;
 exit;
+#Processing complete, close print file and exits program
