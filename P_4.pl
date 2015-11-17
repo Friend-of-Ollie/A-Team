@@ -9,7 +9,7 @@ sub usage {
 		"Usage:","\n",
 		"\t","perl task4.pl -i data.txt -o output.txt -mr-min 1000 -mr-max 1550  -bin 50 -error 1.2Da -ion-with P M -ion-start M","\n",
 		"\t","-man","\t\t","read complete manual page","\n",
-		"\t","-h/help","\t\t","read breif usage","\n",
+		"\t","-h/help","\t\t","read brief usage","\n",
 		"Mandatory Parameters:","\n",
 		"\t","-i","\t\t\t","input file","\n",
 		"\t","-o","\t\t\t","output file","\n",
