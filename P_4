@@ -32,7 +32,7 @@ sub manpage {
 	"\t","1) ion pattern match","\n",
 	"\t\t","Program can identify sequences with specified amino acid in the start of the sequence or sequence contains one or several specified amino acids. User should use shortcut name of amino acids in the command line by -ion-start and -ion-with options. If -ion-start and -ion-with option are not specified, the program won't do this ion-pattern-match part.","\n",
 	"\t","2) mass accuracy modelling","\n",
-	"\t\t","Users should indicate the mass error value if the mass error is known. -error option is used to define the mass error value. The program can accecpt two units of mass error: Da or ppm. When user defines the mass error, the units should be indicated too or the program will take it as an error.","\n",
+	"\t\t","Users should indicate the mass error value if the mass error is known. -error option is used to define the mass error value. The program can accecpt two units of mass error: Da or ppm. When user defines the mass error, the units should be indicated too or the program will take it as an error. When the unit is 'Da', the program will use the following formula to modify the mass-to-charge value:  ","\n",
 	"\t","3) calculate peptide counts in bins by sliding window","\n";
 	
 	
