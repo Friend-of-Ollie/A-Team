@@ -23,6 +23,25 @@ sub usage {
 		
 }
 
+sub manpage {
+	print 
+	"This program is working on the relationship between m/z value and peptide counts.","\n",
+	"The program take in the mass file which should contains protein name, peptide counts, mass-to-charge value, the charge of ion, the number of cleavages and sequence. ",
+	"Finally, the program will output a file which contains two columns represents m/z values and relevant peptide counts. The output file can be easily used for plotting a histogram in R or any other tools you would like to use. ", 
+	"There are three main analysis in this program:","\n",
+	"\t","1) ion pattern match","\n",
+	"\t\t","Program can identify sequences with specified amino acid in the start of the sequence or sequence contains one or several specified amino acids. User should use shortcut name of amino acids in the command line by -ion-start and -ion-with options. If -ion-start and -ion-with option are not specified, the program won't do this ion-pattern-match part.","\n",
+	"\t","2) mass accuracy modelling","\n",
+	"\t\t","Users should indicate the mass error value if the mass error is known. -error option is used to define the mass error value. The program can accecpt two units of mass error: Da or ppm. When user defines the mass error, the units should be indicated too or the program will take it as an error.","\n",
+	"\t","3) calculate peptide counts in bins by sliding window","\n";
+	
+	
+	
+	
+	
+	
+}
+
 ### read opts and set default values
 GetOptions(
 	'i=s' => \(my $filename_input=""),

@@ -8,66 +8,100 @@ use Getopt::Long qw(GetOptions);
 #use Getopt for command line style options
 use POSIX qw(strftime);
 #use POSIX for timestamp
-my ($a, $l, $t, $v) = ();
-GetOptions('a'=>\$a, 'l'=>\$l, 't'=>\$t, 'v'=>\$v) or die "Error: Specify enzyme option!\n";
-#Initialise modules and Getopt options
-if (!@ARGV) {
-	print "Error: Arguments required!\n";
+GetOptions(
+	'a'=>\my $a,
+	'i=s'=>\(my $ifilename=""),
+	'l'=>\my $l,
+	'man'=> \my $man_page,
+	'o:s'=>\(my $ofilename),
+	't'=>\my $t,
+	'v'=>\my $v
+) or die "Error: Missing arguments!\n";
+my $title;
+#Initialise Getopt options
+#i is mandatory (input file name)
+#o is optional (modified output file name)
+if ($man_page){
+	print "\nWelcome to Group A's Sequence analysis pipeline.\nThis is the second element of the pipeline, coded by Cecil Barnett-Neefs.\nThis program will recieve data from files produced by Program 1 and simulate\nenzyme digestion of the polypeptide according to the user's choice, currently\nsupported enzymes are:\n-Endoproteinase Arg-C\t(Arginine)\t(A)\n-Endoproteinase Lys-C\t(Lysine)\t(L)\n-Trypsin\t(Arginine and Lysine)\t(T)\n-V8 protease\t(Glutamate)\t\t(V)\nHowever, the program has a modular design to support future additions.\n\nWhen an enzyme and file have been chosen, the program will read through the fileand extract FASTA entries, converting them to single-line FASTAs and splitting\nthem based on the enzyme choice. Once complete, the program will produce a time-stamped file with the enzyme choice in its name, containing all complete and\nmissed digestion fragments.\n\nShould the input file contain more than one FASTA entry, the digester program\nwill process each one sequentially, producing the complete and missed digestion fragments for each entry before moving onto the next.";
 	exit;
 }
-if (!$a && !$l && !$t && !$v) {
+if (!$ifilename && !$a && !$l && !$t && !$v) {
+	print "Error: Arguments missing!\n";
+	exit;
+}
+elsif (!$ifilename) {
+	print "Error: Specify filename!\n";
+	exit;
+}
+#Error message if -i (input filename) is not set
+elsif (!$a && !$l && !$t && !$v) {
 	print "Error: Specify enzyme option!\n";
 	exit;
 }
+#Error message is no enzyme option is set)
 #Idiot-proofing to force options
-my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
-#Initialise file reading, fasta single line processing, fragment count
-#and results storage
-my $filename = shift or die "No filename supplied!\n";
-my $data="$filename";
 my $datestring = strftime ('%Y-%m-%d_%H-%M-%S', localtime);
 #Calculate current time in YY-MM-DD_HH-MM-SS format to create unique
 #file names
+if ($ofilename) {
+	$title=$ofilename;
+}
+else {
+	$title=$datestring;
+}
+#Allows user to set title_enzyme.fasta, else reverts to 
+#datestring_enzyme.fasta
+my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
+#Initialise file reading, fasta single line processing, fragment count
+#and results storage
+#my $ifilename = shift or die "No filename supplied!\n";
+my $data="$ifilename";
 {
   local $/=undef;
   open FILE, "$data" or die "Error: Couldn't open file: $!";
   $info = <FILE>;
   close FILE;
 }
-#Load entire file into program
+#Load entire file into program (would use Slurp but it's not on Tal)
+#Consider version with Slurp for later usage?
 $info=~ s/>/<>/g;
 my @fastas = split('<', $info);
 shift @fastas;
 #Locate individual entries within a file by looking for > and splits
 #each into individual array elements
+#Former version inserted _ but this accidentally froze the program
+#when headers naturally used them (Thanks Max(!))
 if ($a) {
-	open($fh, '>', "$datestring\_Endoproteinase_Arg-C.fasta");
+	open($fh, '>', "$title\_Endoproteinase_Arg-C.fasta");
 #Open file to save to, using date and enzyme choice to make unique
 #file name
 	print "Endoproteinase Arg-C digestion\n\n";
 #Control statement to confirm choice
 }
 if ($l) {
-	open($fh, '>', "$datestring\_Endoproteinase_Lys-C.fasta");
+	open($fh, '>', "$title\_Endoproteinase_Lys-C.fasta");
 #Open file to save to, using date and enzyme choice to make unique
 #file name
 	print "Endoproteinase Lys-C digestion\n\n";
 #Control statement to confirm choice
 }
 if ($t) {
-	open($fh, '>', "$datestring\_Trypsin.fasta");
+	open($fh, '>', "$title\_Trypsin.fasta");
 #Open file to save to, using date and enzyme choice to make unique
 #file name
 	print "Trypsin digestion\n\n";
 #Control statement to confirm choice
 }
 if ($v) {
-	open($fh, '>', "$datestring\_V8_protease.fasta");
+	open($fh, '>', "$title\_V8_protease.fasta");
 #Open file to save to, using date and enzyme choice to make unique
 #file name
 	print "V8 protease digestion\n\n";
 #Control statement to confirm choice
 }
+#New enzyme options can be added by c/p-ing and modifying existing code
+#Getopt is not case-sensitive, future commands may need to be more than
+#one character
 foreach my $singlefast (@fastas) {
 	open $resultshandle, '<', \$singlefast;
 #Reads multiline element line by line by treating it as a file (yes, 
