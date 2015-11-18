@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use warnings;
+#use warnings;
 use strict;
 #use diagnostics;
 use Getopt::Long;
@@ -113,7 +113,6 @@ sub initiate_sequences {
         #initiate reverse strand
         
         $rs1 = reverse($fs1);
-        #$rs1 =~ s/^\s+|\s+$//g;
         
         #split into the 3 reading frames
         
@@ -216,7 +215,12 @@ sub translate_sequences {
 
 sub split_ORF {
 
-        #split translated sequences into ORF and cut
+        #Split translated sequences into ORF using the feature Look-ahead and Look-behind.
+        #This feature will allow the regex to look forward or backward in the string being processed.
+        #You can require that a pattern match succeeds or fail before the function looks ahead,
+        #allowing for the backtracking of your regex.
+        #The syntax I used is ?= (pattern), which is a positive look ahead assertion. This means
+        #that the regex will keep looking backward, excluding the previous match.
         
         @ORF_F1 = $tfs1  =~ m/(?=(M[^*]+))/g;
         @ORF_F2 = $tfs2  =~ m/(?=(M[^*]+))/g;
