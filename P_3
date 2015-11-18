@@ -148,8 +148,8 @@ foreach $_ (@sequens ){
                                                 }
                                 }
                 $fm = $mtc + $mc;
-                # generate output
-                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t @readout \n" ;
+                my $newstring = join('', @readout );
+                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t $newstring \n" ;
                 push (@output, $ovalue);
                 # clear counting elements to avoid culmulative count
                 @readout=() ;
