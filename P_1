@@ -88,7 +88,7 @@ sub open_file {
                 $chomped_fasta .= $_;
         }
 }
-        
+    
 sub initiate_sequences {
 
         #extract the organism name
@@ -314,7 +314,7 @@ sub output_results {
 
         foreach (@ORF_F1) {
                 my $ORF_length = length ($_);
-                print OUTPUT ">$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
+                print OUTPUT ">$organism"."_ORF_F1_".($ORF_count1)."_length_".($ORF_length)."\n$_\n";
                 $ORF_count1++;
         }
         foreach (@ORF_F2) {
