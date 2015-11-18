@@ -61,15 +61,10 @@ my ($organism,
 
 sub main {
         &open_file;
-        print "test";
         &initiate_sequences;
-        print "test";
-        &translate_sequences;
-        print "test";
+        &translate_sequences;;
         &split_ORF;
-        print "test";
         &filter_length;
-        print "test";
         &output_results;
 }
 
