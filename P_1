@@ -89,7 +89,8 @@ sub initiate_sequences {
         
         @name_seq = split /sequence/, $chomped_fasta;
         $organism = $name_seq [0];
-        
+        $organism = uc(substr $organism, 1, 7) ;
+
         #initiate forward and reverse strands
         
         $fs1 = uc $name_seq [1];
@@ -312,27 +313,27 @@ sub output_results {
         }
         foreach (@ORF_F2) {
                 my $ORF_length = length ($_);
-                print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
+                print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count2++;
         }
         foreach (@ORF_F3) {
                 my $ORF_length = length ($_);
-                print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length: ".($ORF_length)."\nM$_\n";
+                print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count3++;
         }
         foreach (@ORF_F4) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length: ".($ORF_length)."\nM$_\n";
+                print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count4++;
         }
         foreach (@ORF_F5) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length: ".($ORF_length)."\nM$_\n";
+                print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count5++;
         }
         foreach (@ORF_F6) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
+                print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count6++;
         }
 
@@ -348,6 +349,6 @@ sub output_results {
 
 }
 
-print "\nDone! The file $ofilename now contained the processed sequence\n";
+print "\nDone! The file $ofilename now contained the processed sequence\n\n";
 
 exit;
