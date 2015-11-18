@@ -31,16 +31,8 @@ GetOptions ('man' => \$man_page ,
             'o=s' => \$ofilename) or die "\nUsage:\n [-man] for help on how to use the program\n\n";
 
 if ($man_page){
-        print "\nWelcome to the first part of the Mass Spec";
-        print "\nP_1 commands\n";
-        print "\n\t\t[-f] <your input file name>\n";
-        print "\n\t\t[-lmin] <your minimum ORF length>\n";
-        print "\n\t\t[-lmax] <your maximum ORF length>\n";
-        print "\n\t\t[-fstart] <the first nucleotide position of your desired frame>\n";
-        print "\n\t\t[-fend] <the last nucleotide position of your desired frame>\n";
-        print "\n\t\t[-o] <your desired output file name>\n";
-        print "\nExample:\n";
-        print "\n\tperl P_1 -f organism.fasta -fstart 50 -fend 1000 -lmin 300 -lmax 1000 -o myoutput.fasta\n\n";
+        open(FMAN, '<', 'man-P_1') or die "\nThe man page is not present in your directory \n\n $!\n" ;
+        print <FMAN>;
         exit;
 
 }
@@ -300,7 +292,7 @@ sub output_results {
         if ($ofilename) {
                 open( OUTPUT, '>', "$ofilename");
         }else {
-                print "no output filename specified, printing to output.fasta";
+                print "no output filename specified, printing to output.fasta\n";
                 $ofilename = "output.fasta";
                 open( OUTPUT, '>', "$ofilename");        
         }
