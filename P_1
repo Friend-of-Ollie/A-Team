@@ -13,8 +13,8 @@ use Getopt::Long;
 #    print "You must enter arguments!\nP_1 [--man] for help\nP_1 [--files][your files] to start\n";
 #    exit;
 #}
-
-my $files;
+  
+my $file;
 my $length_min;
 my $length_max;
 my $ofilename;
@@ -23,7 +23,7 @@ my $frame_start;
 my $frame_end;
 
 GetOptions ('man' => \$man_page ,
-            'f=s' => \$files , 
+            'f=s' => \$file , 
             'lmin=i' => \$length_min,
             'lmax=i' => \$length_max,
             'fstart=i' => \$frame_start,
@@ -77,367 +77,418 @@ my ($organism,
     @ORF_F1, @ORF_F2, @ORF_F3, @ORF_F4, @ORF_F5, @ORF_F6,
     @tfs1, @tfs2, @tfs3, @trs1, @trs2, @trs3,
     $tfs1, $tfs2, $tfs3, $trs1, $trs2, $trs3,
-    @sorted_ORF, @name_seq,
-    $fastafile,
-    $file_count,);
-
-#$file_count = 1;
-
-#opens the fasta files or gives the relevant error message
-
-#foreach my $filename (@files) {
-#                open (FH , '<' , $filename) or die "\nFailed to open file $_ $!";
+    @sorted_ORF, @name_seq);
 
 
-#print "which file would you like to open?\n";
+#call the subroutines
 
-$fastafile= $files;
-open ( FH , '<' , $fastafile ) or die "\nFailed to open file $_ $!";
+&open_file;
+&initiate_sequences;
+&translate_sequences;
+&split_ORF;
+&filter_length;
+&output_results;
 
-#turn the file into one long string
-
-while (<FH>) {
-        chomp $_;
-        $chomped_fasta .= $_;
-}
-
-#extract the organism name
-
-@name_seq = split /sequence/, $chomped_fasta;
-$organism = $name_seq [0];
-
-#initiate forward and reverse strands
-
-$fs1 = uc $name_seq [1];
-#$fs1 =~ s/^\s+|\s+$//g;
-
-#cut if the user specified a frame
-
-if ($frame_start) {
-    $fs1 = substr $fs1, $frame_start;
-}else {
-        print "\nYou have not specified a starting point in the sequence\n";
-        $frame_start=1
-}
-
-if ($frame_end) {
-    $fs1 = substr $fs1, $frame_start, (length ($fs1) - $frame_end);
-}else {
-        print "\nYou have not specified a ending point in the sequence\n";
-}
-
-
-#initiate reverse strand
-
-$rs1 = reverse($fs1);
-#$rs1 =~ s/^\s+|\s+$//g;
-
-#split into the 3 reading frames
-
-$fs2 = substr $fs1, 1;
-$fs3 = substr $fs2, 1;
-$rs2 = substr $rs1, 1;
-$rs3 = substr $rs2, 1;
-
-#translate the sequence using the hash, excluding codons containing the (lower case) letter 'n'
-
-for (my $i =0;$i<=length($fs1)-2;$i+=3) {
-        $_= substr $fs1, $i , 3;
-        if (($_ !~ m/(.*n.*|n.*|.*n)/) | (length($_) == 3)) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs1, $translated_value;
+sub open_file {
+        
+        #opens the fasta files or gives the relevant error message
+        
+        my $fastafile = $file;
+        open ( FH , '<' , $fastafile ) or die "\nFailed to open file, $!";
+        
+        #turn the file into one long string
+        
+        while (<FH>) {
+                chomp $_;
+                $chomped_fasta .= $_;
         }
 }
+        
+sub initiate_sequences {
 
-for (my $i =0;$i<=length($fs2)-2;$i+=3) {
-        $_= substr $fs2, $i , 3;
-        if (($_ !~ m/(.*n.*|n.*|.*n)/)| (length ($_) == 3)) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs2, $translated_value;
+        #extract the organism name
+        
+        @name_seq = split /sequence/, $chomped_fasta;
+        $organism = $name_seq [0];
+        
+        #initiate forward and reverse strands
+        
+        $fs1 = uc $name_seq [1];
+        #$fs1 =~ s/^\s+|\s+$//g;
+        
+        #cut if the user specified a frame
+        
+        if ($frame_start) {
+            $fs1 = substr $fs1, $frame_start;
+        }else {
+                print "\nYou have not specified a starting point in the sequence\n";
+                $frame_start=1
         }
-}
 
-for (my $i =0;$i<=length($fs3)-2;$i+=3) {
-        $_= substr $fs3, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @tfs3, $translated_value;
+        if ($frame_end) {
+            $fs1 = substr $fs1, $frame_start, (length ($fs1) - $frame_end);
+        }else {
+                print "\nYou have not specified a ending point in the sequence\n";
         }
+        
+        
+        #initiate reverse strand
+        
+        $rs1 = reverse($fs1);
+        #$rs1 =~ s/^\s+|\s+$//g;
+        
+        #split into the 3 reading frames
+        
+        $fs2 = substr $fs1, 1;
+        $fs3 = substr $fs2, 1;
+        $rs2 = substr $rs1, 1;
+        $rs3 = substr $rs2, 1;
+        
 }
+        
+sub translate_sequences {
+        
+        #hash for translation
 
-for (my $i =0;$i<=length($rs1)-2;$i+=3) {
-        $_= substr $rs1, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs1, $translated_value;
-        }
-}
-
-for (my $i =0;$i<=length($rs2)-2;$i+=3) {
-        $_= substr $rs2, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs2, $translated_value;
-        }
-}
-
-for (my $i =0;$i<=length($rs3)-2;$i+=3) {
-        $_= substr $rs3, $i , 3;
-        if ($_ !~ m/(.*n.*|n.*|.*n)/) {
-                my $temp = $_;
-                my $translated_value = $DNAtoAA{$temp};
-                push @trs3, $translated_value;
-        }
-}
-
-#merge the translated sequences into one long string
-
-$tfs1 = join '' , @tfs1;
-$tfs2 = join '' , @tfs2;
-$tfs3 = join '' , @tfs3;
-
-$trs1 = join '' , @trs1;
-$trs2 = join '' , @trs2;
-$trs3 = join '' , @trs3;
-
-#split translated sequences into ORF and cut
-#at ever stop '*' codon. The @s loop contains the remaining lines
-#as the string is processed using the $- special variable.
-#the @e array contains the previously matched parterns using the $+ special
-#variable. By removing $s from $e, we can point to the remaing
-#part of the tranlated string to be processed. Substring is then used to
-#push the relevant part of the string to an array.
-
-#first ORF
-
-my (@s, @e);
-
-while ($tfs1 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($tfs1 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F1, substr $tfs1, $s, $e-$s;
+        my %DNAtoAA = (
+                "AAA" => "K", "AAC" => "N", "AAG" => "K", "AAT" => "N",
+                "ACA" => "T", "ACC" => "T", "ACG" => "T", "ACT" => "T",
+                "AGA" => "R", "AGC" => "S", "AGG" => "R", "AGT" => "S",
+                "ATA" => "I", "ATC" => "I", "ATG" => "M", "ATT" => "I",
+                "CAA" => "Q", "CAC" => "H", "CAG" => "Q", "CAT" => "H",
+                "CCA" => "P", "CCC" => "P", "CCG" => "P", "CCT" => "P",
+                "CGA" => "R", "CGC" => "R", "CGG" => "R", "CGT" => "R",
+                "CTA" => "L", "CTC" => "L", "CTG" => "L", "CTT" => "L",
+                "GAA" => "E", "GAC" => "D", "GAG" => "E", "GAT" => "D",
+                "GCA" => "A", "GCC" => "A", "GCG" => "A", "GCT" => "A",
+                "GGA" => "G", "GGC" => "G", "GGG" => "G", "GGT" => "G",
+                "GTA" => "V", "GTC" => "V", "GTG" => "V", "GTT" => "V",
+                "TAA" => "*", "TAC" => "Y", "TAG" => "*", "TAT" => "Y",
+                "TCA" => "S", "TCC" => "S", "TCG" => "S", "TCT" => "S",
+                "TGA" => "*", "TGC" => "C", "TGG" => "W", "TGT" => "C",
+                "TTA" => "L", "TTC" => "F", "TTG" => "L", "TTT" => "F" );
+        
+        #translate the sequence using the hash, excluding codons containing the (lower case) letter 'n'
+        
+        for (my $i =0;$i<=length($fs1)-2;$i+=3) {
+                $_= substr $fs1, $i , 3;
+                if (($_ !~ m/(.*n.*|n.*|.*n)/) | (length($_) == 3)) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @tfs1, $translated_value;
                 }
         }
-}
-
-@ORF_F1 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F1;
-
-#second ORF
-
-while ($tfs2 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($tfs2 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F2, substr $tfs1, $s, $e-$s;
+        
+        for (my $i =0;$i<=length($fs2)-2;$i+=3) {
+                $_= substr $fs2, $i , 3;
+                if (($_ !~ m/(.*n.*|n.*|.*n)/)| (length ($_) == 3)) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @tfs2, $translated_value;
                 }
         }
-}
-
-@ORF_F2 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F2;
-
-#third ORF
-
-while ($tfs3 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($tfs3 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F3, substr $tfs3, $s, $e-$s;
+        
+        for (my $i =0;$i<=length($fs3)-2;$i+=3) {
+                $_= substr $fs3, $i , 3;
+                if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @tfs3, $translated_value;
                 }
         }
-}
-
-@ORF_F3 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F3;
-
-#fourth ORF (reverse)
-
-while ($trs1 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs1 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F4, substr $trs1, $s, $e-$s;
+        
+        for (my $i =0;$i<=length($rs1)-2;$i+=3) {
+                $_= substr $rs1, $i , 3;
+                if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @trs1, $translated_value;
                 }
         }
-}
-
-@ORF_F4 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F4;
-
-#fith ORF (reverse)
-
-while ($trs2 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs2 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F5, substr $trs2, $s, $e-$s;
+        
+        for (my $i =0;$i<=length($rs2)-2;$i+=3) {
+                $_= substr $rs2, $i , 3;
+                if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @trs2, $translated_value;
                 }
         }
-}
-
-@ORF_F5 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F5;
-
-#sixth ORF (reverse)
-
-while ($trs3 =~/M/g){
-        push @s, $-[0];
-}
-
-while ($trs3 =~/\*/g) {
-        push @e, $+[0];
-}
-
-foreach my $s ( @s ) {
-        foreach my $e ( @e ) {
-                if ($e > $s) {
-                        push @ORF_F6, substr $trs3, $s, $e-$s;
+        
+        for (my $i =0;$i<=length($rs3)-2;$i+=3) {
+                $_= substr $rs3, $i , 3;
+                if ($_ !~ m/(.*n.*|n.*|.*n)/) {
+                        my $temp = $_;
+                        my $translated_value = $DNAtoAA{$temp};
+                        push @trs3, $translated_value;
                 }
         }
+        
+        #merge the translated sequences into one long string
+        
+        $tfs1 = join '' , @tfs1;
+        $tfs2 = join '' , @tfs2;
+        $tfs3 = join '' , @tfs3;
+        
+        $trs1 = join '' , @trs1;
+        $trs2 = join '' , @trs2;
+        $trs3 = join '' , @trs3;
+        
 }
 
-@ORF_F6 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F6;
+sub split_ORF {
 
-#foreach (@ORF_F2){
-#        print ",$_,";
-#}
+        #split translated sequences into ORF and cut
+        #at ever stop '*' codon. The @s loop contains the remaining lines
+        #as the string is processed using the $- special variable.
+        #the @e array contains the previously matched patterns using the $+ special
+        #variable. By removing $s from $e, we can point to the remaining
+        #part of the translated string to be processed. Substring is then used to
+        #push the relevant part of the string to an array. Each elements
+        #in the array is then cut at the first stop codon using 'map' (which allows
+        #for element editing)
+        
+        #first ORF
+        
+        my (@s, @e);
+        
+        while ($tfs1 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($tfs1 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F1, substr $tfs1, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F1 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F1;
+        
+        #second ORF
+        
+        while ($tfs2 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($tfs2 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F2, substr $tfs1, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F2 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F2;
+        
+        #third ORF
+        
+        while ($tfs3 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($tfs3 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F3, substr $tfs3, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F3 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F3;
+        
+        #fourth ORF (reverse)
+        
+        while ($trs1 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($trs1 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F4, substr $trs1, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F4 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F4;
+        
+        #fith ORF (reverse)
+        
+        while ($trs2 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($trs2 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F5, substr $trs2, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F5 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F5;
+        
+        #sixth ORF (reverse)
+        
+        while ($trs3 =~/M/g){
+                push @s, $-[0];
+        }
+        
+        while ($trs3 =~/\*/g) {
+                push @e, $+[0];
+        }
+        
+        foreach my $s ( @s ) {
+                foreach my $e ( @e ) {
+                        if ($e > $s) {
+                                push @ORF_F6, substr $trs3, $s, $e-$s;
+                        }
+                }
+        }
+        
+        @ORF_F6 = map { substr $_,0 , index($_, '*') + 1 } @ORF_F6;
+        
+}
+        
+sub filter_length {
+        
+        #ignore ORFs which are not the query length.
+        
+        my $upper_bound;
+        my $lower_bound;
+        
+        if ($length_min) {
+            $lower_bound= $length_min;
+        } else {
+                $lower_bound = 0;
+        }
+        
+        if ($length_max) {
+            $upper_bound = $length_max;
+        }else {
+                $upper_bound=length ($tfs1);
+        }
+        
+        foreach (@ORF_F1) {
+               @ORF_F1 = grep length($_) >= $lower_bound, @ORF_F1;
+               @ORF_F1 = grep length($_) <= $upper_bound, @ORF_F1;
+        }
+        
+        foreach (@ORF_F2) {
+                @ORF_F2 = grep length($_) >= $lower_bound, @ORF_F2;
+                @ORF_F2 = grep length($_) <= $upper_bound, @ORF_F2;
+        }
+        
+        foreach (@ORF_F3) {
+                @ORF_F3 = grep length($_) >= $lower_bound, @ORF_F3;
+                @ORF_F3 = grep length($_) <= $upper_bound, @ORF_F3;
+        }
+        
+        foreach (@ORF_F4) {
+                @ORF_F4 = grep length($_) >= $lower_bound, @ORF_F4;
+                @ORF_F4 = grep length($_) <= $upper_bound, @ORF_F4;
+        }
+        
+        foreach (@ORF_F5) {
+                @ORF_F5 = grep length($_) >= $lower_bound, @ORF_F5;
+                @ORF_F5 = grep length($_) <= $upper_bound, @ORF_F5;
+        }
+        
+        foreach (@ORF_F6) {
+                @ORF_F6 = grep length($_) >= $lower_bound, @ORF_F6;
+                @ORF_F6 = grep length($_) <= $upper_bound, @ORF_F6;
+        }
 
-#ignore ORFs which are not the query length.
+        close FH;
 
-my $upper_bound;
-my $lower_bound;
-
-if ($length_min) {
-    $lower_bound= $length_min;
-} else {
-        $lower_bound = 0;
 }
 
-if ($length_max) {
-    $upper_bound = $length_max;
-}else {
-        $upper_bound=length ($tfs1);
+sub output_results {
+        
+        #print results to file
+
+        if ($ofilename) {
+                open( OUTPUT, '>', "$ofilename");
+        }else {
+                print "no output filename specified, printing to output.fasta";
+                $ofilename = "output.fasta";
+                open( OUTPUT, '>', "$ofilename");        
+        }
+
+        my $ORF_count1=1;
+        my $ORF_count2=1;
+        my $ORF_count3=1;
+        my $ORF_count4=1;
+        my $ORF_count5=1;
+        my $ORF_count6=1;
+
+        #print OUTPUT "\n$filename\n";
+
+        foreach (@ORF_F1) {
+                my $ORF_length = length ($_);
+                print OUTPUT "$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
+                $ORF_count1++;
+        }
+        foreach (@ORF_F2) {
+                my $ORF_length = length ($_);
+                print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
+                $ORF_count2++;
+        }
+        foreach (@ORF_F3) {
+                my $ORF_length = length ($_);
+                print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length: ".($ORF_length)."\nM$_\n";
+                $ORF_count3++;
+        }
+        foreach (@ORF_F4) {
+                my $ORF_length = length ($_);
+                print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length: ".($ORF_length)."\nM$_\n";
+                $ORF_count4++;
+        }
+        foreach (@ORF_F5) {
+                my $ORF_length = length ($_);
+                print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length: ".($ORF_length)."\nM$_\n";
+                $ORF_count5++;
+        }
+        foreach (@ORF_F6) {
+                my $ORF_length = length ($_);
+                print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
+                $ORF_count6++;
+        }
+
+        close OUTPUT;
+        
+        print "\nFrame 1 has $ORF_count1 ORFs\n";
+        print "\nFrame 2 has $ORF_count2 ORFs\n";
+        print "\nFrame 3 has $ORF_count3 ORFs\n";
+        print "\nFrame 4 has $ORF_count4 ORFs\n";
+        print "\nFrame 5 has $ORF_count5 ORFs\n";
+        print "\nFrame 6 has $ORF_count6 ORFs\n";
+
+
 }
 
-foreach (@ORF_F1) {
-       @ORF_F1 = grep length($_) >= $lower_bound, @ORF_F1;
-       @ORF_F1 = grep length($_) <= $upper_bound, @ORF_F1;
-}
-
-foreach (@ORF_F2) {
-        @ORF_F2 = grep length($_) >= $lower_bound, @ORF_F2;
-        @ORF_F2 = grep length($_) <= $upper_bound, @ORF_F2;
-}
-
-foreach (@ORF_F3) {
-        @ORF_F3 = grep length($_) >= $lower_bound, @ORF_F3;
-        @ORF_F3 = grep length($_) <= $upper_bound, @ORF_F3;
-}
-
-foreach (@ORF_F4) {
-        @ORF_F4 = grep length($_) >= $lower_bound, @ORF_F4;
-        @ORF_F4 = grep length($_) <= $upper_bound, @ORF_F4;
-}
-
-foreach (@ORF_F5) {
-        @ORF_F5 = grep length($_) >= $lower_bound, @ORF_F5;
-        @ORF_F5 = grep length($_) <= $upper_bound, @ORF_F5;
-}
-
-foreach (@ORF_F6) {
-        @ORF_F6 = grep length($_) >= $lower_bound, @ORF_F6;
-        @ORF_F6 = grep length($_) <= $upper_bound, @ORF_F6;
-}
-
-close FH;
-
-#print results to file
-
-open( OUTPUT, '>', "$ofilename");
-
-my $ORF_count1=1;
-my $ORF_count2=1;
-my $ORF_count3=1;
-my $ORF_count4=1;
-my $ORF_count5=1;
-my $ORF_count6=1;
-
-#print OUTPUT "\n$filename\n";
-
-foreach (@ORF_F1) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
-        $ORF_count1++;
-}
-foreach (@ORF_F2) {
-        my $ORF_length = length ($_);
-        print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count2++;
-}
-foreach (@ORF_F3) {
-        my $ORF_length = length ($_);
-        print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count3++;
-}
-foreach (@ORF_F4) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count4++;
-}
-foreach (@ORF_F5) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count5++;
-}
-foreach (@ORF_F6) {
-        my $ORF_length = length ($_);
-        print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length: ".($ORF_length)."\nM$_\n";
-        $ORF_count6++;
-}
-
-#$file_count++;
-
-close OUTPUT;
-
-#}
-
-#print "$file_count\n";
+print "\nDone! The file $ofilename now contained the processed sequence\n";
 
 exit;
