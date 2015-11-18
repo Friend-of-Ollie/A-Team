@@ -31,6 +31,7 @@ GetOptions ('man' => \$man_page ,
             'o=s' => \$ofilename) or die "\nUsage:\n [-man] for help on how to use the program\n\n";
 
 if ($man_page){
+        print "\nWelcome to the first part of the Mass Spec";
         print "\nP_1 commands\n";
         print "\n\t\t[-f] <your input file name>\n";
         print "\n\t\t[-lmin] <your minimum ORF length>\n";
@@ -61,11 +62,16 @@ my ($organism,
 
 sub main {
         &open_file;
+        print "\nWorking...\n\n";
         &initiate_sequences;
-        &translate_sequences;;
+        print "\nWorking...\n\n";
+        &translate_sequences;
+        print "\nWorking...\n\n";
         &split_ORF;
+        print "\nWorking...\n\n";
         &filter_length;
         &output_results;
+        
 }
 
 sub open_file {
@@ -308,32 +314,32 @@ sub output_results {
 
         foreach (@ORF_F1) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
+                print OUTPUT ">$organism"."_ORF_F1_".($ORF_count1)."_length: ".($ORF_length)."\n$_\n";
                 $ORF_count1++;
         }
         foreach (@ORF_F2) {
                 my $ORF_length = length ($_);
-                print OUTPUT"$organism"."_ORF_F2_".($ORF_count2)."_length_".($ORF_length)."\nM$_\n";
+                print OUTPUT">$organism"."_ORF_F2_".($ORF_count2)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count2++;
         }
         foreach (@ORF_F3) {
                 my $ORF_length = length ($_);
-                print OUTPUT"$organism"."_ORF_F3_".($ORF_count3)."_length_".($ORF_length)."\nM$_\n";
+                print OUTPUT">$organism"."_ORF_F3_".($ORF_count3)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count3++;
         }
         foreach (@ORF_F4) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F4_".($ORF_count4)."_length_".($ORF_length)."\nM$_\n";
+                print OUTPUT ">$organism"."_ORF_F4_".($ORF_count4)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count4++;
         }
         foreach (@ORF_F5) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F5_".($ORF_count5)."_length_".($ORF_length)."\nM$_\n";
+                print OUTPUT ">$organism"."_ORF_F5_".($ORF_count5)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count5++;
         }
         foreach (@ORF_F6) {
                 my $ORF_length = length ($_);
-                print OUTPUT "$organism"."_ORF_F6_".($ORF_count6)."_length_".($ORF_length)."\nM$_\n";
+                print OUTPUT ">$organism"."_ORF_F6_".($ORF_count6)."_length_".($ORF_length)."\nM$_\n";
                 $ORF_count6++;
         }
 
@@ -349,6 +355,6 @@ sub output_results {
 
 }
 
-print "\nDone! The file $ofilename now contained the processed sequence\n\n";
+print "\nDone! The file $ofilename now contains the processed sequence\n\n";
 
 exit;
