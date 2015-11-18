@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# enzyme_digester_IX.pl
+# P_2.pl
 #  - digests amino acid sequences
 use strict;
 #use strict for good coding
@@ -9,19 +9,39 @@ use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
 #use POSIX for timestamp
 GetOptions(
-	'a'=>\my $a,
-	'i=s'=>\(my $ifilename=""),
-	'l'=>\my $l,
-	'o:s'=>\(my $ofilename),
-	't'=>\my $t,
-	'v'=>\my $v
+	'a|Arg-C|Endoproteinase-Arg-C'=>\my $a,
+	'help'=>\my $help,
+	'i|input=s'=>\(my $ifilename=""),
+	'l|Lys-C|Endoproteinase-Lys-C'=>\my $l,
+	'o|output:s'=>\(my $ofilename),
+	't|Trypsin'=>\my $t,
+	'v|V8|V8-protease'=>\my $v,
+	'version'=>\my $version,
 ) or die "Error: Missing arguments!\n";
 my $title;
 #Initialise Getopt options
 #i is mandatory (input file name)
 #o is optional (modified output file name)
+if ($version) {
+	print "\nVersion 9.3.\n";
+	exit;
+}
+if ($help) {
+	print "\nUsage: P_2 [OPTION] [-i] SOURCE\n";
+	print "   or: P_2 [OPTION] [-i] SOURCE [-o] DEST\n";
+	print "Simulates enzyme digestion of peptide sequences, and produces a local directory with results by default.\n\n";
+	print "  -a, --Arg-C, --Endoproteinase-Arg-C\truns digestion simulating Endoproteinase\t\t\t\t\tArg-C\n";
+	print "  -i, --input\t\t\t\tspecifies input directory\n";
+	print "  -l, --Lys-C, --Endoproteinase_Lys-C\truns digestion simulating Endoproteinase\t\t\t\t\tLys-C\n";
+	print "  -o, --output\t\t\t\tallows user to modify output name and \t\t\t\t\t\tspecify directory, enzyme name used will\t\t\t\t\tstill be written into directory name\n";
+	print "  -t, --trypsin\t\t\t\truns digestion simulating Trypsin\n";
+	print "  -v, --V8, --V8-protease\t\truns digestion simulating V8 protease\n\n";
+	print "  --version\t\t\t\t\toutput version information and exit\n";
+	print "By default, output files will be created in the same directory as SOURCE files with a time-stamp-based title. This behaviour can be modified with -o.\n";
+	exit;
+}
 if (!$ifilename && !$a && !$l && !$t && !$v) {
-	print "Error: Arguments missing!\nP_2 [-i][your file] [-a] [-l] [-t] [-v] [-o][custom output name] (optional, uses timestamp as default)\n";
+	print "Error: Arguments missing!\nAP_2 [-i][your file] [-a] [-l] [-t] [-v] [-o][custom output name] (optional, uses timestamp as default)\n";
 	exit;
 }
 elsif (!$ifilename) {
@@ -49,7 +69,6 @@ else {
 my ($fh, $headercount, @values, $fragment, $fragcount, $info, @fastas, @headerlist, $currentfragment, $resultshandle)=();
 #Initialise file reading, fasta single line processing, fragment count
 #and results storage
-#my $ifilename = shift or die "No filename supplied!\n";
 my $data="$ifilename";
 {
   local $/=undef;
