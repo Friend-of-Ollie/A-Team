@@ -7,39 +7,21 @@ use Getopt::Long;
 sub usage {
 	print 
 		"Usage:","\n",
-		"\t","perl task4.pl -i data.txt -o output.txt -mr-min 1000 -mr-max 1550  -bin 50 -error 1.2Da -ion-with P M -ion-start M","\n",
-		"\t","-man","\t\t","read complete manual page","\n",
-		"\t","-h/help","\t\t","read brief usage","\n",
+		"\t","perl P_4.pl -i data.txt -o output.txt -mr-min 1000 -mr-max 1550  -bin 50 -error 1.2Da -ion-with P M -ion-start M","\n",
+		"Manual:","\n",
+		"\t","-man","\t\t\t","Show complete manual page","\n",
+		"\t","-h/help","\t\t\t","Show brief usage","\n",
 		"Mandatory Parameters:","\n",
-		"\t","-i","\t\t\t","input file","\n",
-		"\t","-o","\t\t\t","output file","\n",
+		"\t","-i","\t\t\t","Input file","\n",
+		"\t","-o","\t\t\t","Output file","\n",
 		"Options:","\n",
-		"\t","-mr-max","\t\t\t","upper limit of mass range (Default: the minimum m/z value of the input data)","\n",
-		"\t","-mr-min","\t\t\t","lower limit of mass range (Default: the maximum m/z value of the input data)","\n",
-		"\t","-bin","\t\t\t","bin size (Default: bin size = 50)","\n",
-		"\t","-error","\t\t\t","give value of mass error (ppm/Da) ex.0.5Da/0.5ppm (Default: mass error = 0 Da)","\n",
-		"\t","-ion-start","\t\t","only calculate sequences start with specific amino acids","\n",
-		"\t","-ion-with","\t\t","only calculate sequences include specific amino acids","\n";
+		"\t","-mr-max","\t\t\t","Upper limit of mass range (Default: the minimum m/z value of the input data)","\n",
+		"\t","-mr-min","\t\t\t","Lower limit of mass range (Default: the maximum m/z value of the input data)","\n",
+		"\t","-bin","\t\t\t","Bin size (Default: bin size = 50)","\n",
+		"\t","-error","\t\t\t","Give value of mass error (ppm/Da) ex.0.5Da/0.5ppm (Default: mass error = 0 Da)","\n",
+		"\t","-ion-start","\t\t","Only calculate sequences start with specific amino acids","\n",
+		"\t","-ion-with","\t\t","Only calculate sequences include specific amino acids. Accepts single or several amino acids.","\n\n";
 		
-}
-
-sub manpage {
-	print 
-	"This program is working on the relationship between m/z value and peptide counts.","\n",
-	"The program take in the mass file which should contains protein name, peptide counts, mass-to-charge value, the charge of ion, the number of cleavages and sequence. ",
-	"Finally, the program will output a file which contains two columns represents m/z values and relevant peptide counts. The output file can be easily used for plotting a histogram in R or any other tools you would like to use. ", 
-	"There are three main analysis in this program:","\n",
-	"\t","1) ion pattern match","\n",
-	"\t\t","Program can identify sequences with specified amino acid in the start of the sequence or sequence contains one or several specified amino acids. User should use shortcut name of amino acids in the command line by -ion-start and -ion-with options. If -ion-start and -ion-with option are not specified, the program won't do this ion-pattern-match part.","\n",
-	"\t","2) mass accuracy modelling","\n",
-	"\t\t","Users should indicate the mass error value if the mass error is known. -error option is used to define the mass error value. The program can accecpt two units of mass error: Da or ppm. When user defines the mass error, the units should be indicated too or the program will take it as an error. When the unit is 'Da', the program will use the following formula to modify the mass-to-charge value:  ","\n",
-	"\t","3) calculate peptide counts in bins by sliding window","\n";
-	
-	
-	
-	
-	
-	
 }
 
 ### read opts and set default values
@@ -53,11 +35,17 @@ GetOptions(
 	'ion-start=s' => \(my $ion_start = ""),
 	'ion-with=s{,}' => \my @ion_with,
 	'help|h' => \my $help,
+	'man' => \my $man
 ) or usage();
 
 ### print usage while -help/-h
 if ($help) {
 	exit usage();
+}
+
+require "manpage.pl";
+if ($man) {
+	exit manpage(1);
 }
 
 ### check mandatory
@@ -80,7 +68,6 @@ my $ion_with_each;
 while ($line_array = <IFILE>) {
 	chomp($line_array);
 	@line = split ("\t",$line_array);
-	#push (@_,$line);
 	$line++;
     for ( my $i=0; $i< @line; $i++ ) {
 	    $mass_data[$line-1][$i] = $line[$i];
