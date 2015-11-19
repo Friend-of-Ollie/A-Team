@@ -34,6 +34,12 @@ if ($man_page){
 
 }
 
+if ($file !~ m/(.*\.fasta)|(.*\.fas)|(.*\.fna)/) {
+    print "\n\nYour file is not fasta formatted!\n\n";
+    exit;
+}
+
+
 #declare global variables
 
 my ($organism,
