@@ -84,7 +84,7 @@ sub initiate_sequences {
         
         @name_seq = split /sequence/, $chomped_fasta;
         $organism = $name_seq [0];
-        $organism = uc(substr $organism, 1, 7) ;
+        $organism = substr $organism, 1, 7 ;
 
         #initiate forward and reverse strands
         
@@ -141,12 +141,12 @@ sub translate_sequences {
                 "TGA" => "*", "TGC" => "C", "TGG" => "W", "TGT" => "C",
                 "TTA" => "L", "TTC" => "F", "TTG" => "L", "TTT" => "F" );
         
-        #translate the sequence using the hash, excluding codons containing the (lower case) letter 'n'
+        #translate the sequence using the hash, excluding codons containing the letter 'n'
         
         for (my $i =0;$i<=length($fs1)-2;$i+=3) {
                 $_= substr $fs1, $i , 3;
                 if (($_ !~ m/(.*n.*|n.*|.*n)/) | (length($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @tfs1, $translated_value;
                 }
@@ -155,7 +155,7 @@ sub translate_sequences {
         for (my $i =0;$i<=length($fs2)-2;$i+=3) {
                 $_= substr $fs2, $i , 3;
                 if (($_ !~ m/(.*n.*|n.*|.*n)/)| (length ($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @tfs2, $translated_value;
                 }
@@ -164,7 +164,7 @@ sub translate_sequences {
         for (my $i =0;$i<=length($fs3)-2;$i+=3) {
                 $_= substr $fs3, $i , 3;
                 if ($_ !~ m/(.*n.*|n.*|.*n)/| (length($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @tfs3, $translated_value;
                 }
@@ -173,7 +173,7 @@ sub translate_sequences {
         for (my $i =0;$i<=length($rs1)-2;$i+=3) {
                 $_= substr $rs1, $i , 3;
                 if ($_ !~ (m/(.*n.*|n.*|.*n)/)| (length($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @trs1, $translated_value;
                 }
@@ -182,7 +182,7 @@ sub translate_sequences {
         for (my $i =0;$i<=length($rs2)-2;$i+=3) {
                 $_= substr $rs2, $i , 3;
                 if ($_ !~ (m/(.*n.*|n.*|.*n)/) | (length($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @trs2, $translated_value;
                 }
@@ -191,7 +191,7 @@ sub translate_sequences {
         for (my $i =0;$i<=length($rs3)-2;$i+=3) {
                 $_= substr $rs3, $i , 3;
                 if ($_ !~ (m/(.*n.*|n.*|.*n)/)| (length($_) == 3)) {
-                        my $temp = $_;
+                        my $temp = uc($_);
                         my $translated_value = $DNAtoAA{$temp};
                         push @trs3, $translated_value;
                 }
