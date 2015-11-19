@@ -63,6 +63,26 @@ else {
 # kill script if no filename is provided
 $filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
 
+#truncating the filename
+my $nameoffile = "MS$filename" ;
+
+if ($nameoffile =~ /Trypsin/){
+	$nameoffile ="Trypsin";
+}
+;
+if ($nameoffile =~ /Endoproteinase_Lys-C/){
+	$nameoffile ="Endoproteinase_Lys-C";
+}
+;
+if ($nameoffile =~ /Endoproteinase_Arg-C/){
+	$nameoffile ="Endoproteinase_Arg-C";
+}
+;
+if ($nameoffile =~ /V8_proteinase/){
+	$nameoffile ="V8_proteinase";
+}
+;
+
 # body of script
 
 @filedata= getfile($filename );
@@ -106,7 +126,7 @@ sub dataextract {
                                 }
 # calculate p
 foreach $_ (@heads){
-        if ($_ =~ "missed cleavage"){
+        if ($_ =~ "missed_cleavage"){
         ++$pvalue;
         push (@pvalue, $pvalue);
         $pvalue = "0";
@@ -149,7 +169,7 @@ foreach $_ (@sequens ){
                                 }
                 $fm = $mtc + $mc;
                 my $newstring = join('', @readout );
-                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t $newstring \n" ;
+                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t $newstring" ;
                 push (@output, $ovalue);
                 # clear counting elements to avoid culmulative count
                 @readout=() ;
@@ -159,8 +179,8 @@ foreach $_ (@sequens ){
 }
 
 # write to file
-open (my $fh, ">", "$filename\_$masschoice\_anal.pepmasses");
+open (my $fh, ">", "$nameoffile\_$masschoice.pepmasses");
 print $fh @output ;
-print "FILE $filename\_$masschoice\_anal.pepmasses written \n" ;
+print "FILE $nameoffile\_$masschoice.pepmasses written \n" ;
 close $fh;
 }
