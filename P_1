@@ -1,10 +1,7 @@
 #!/usr/bin/perl
 
-#use warnings;
 use strict;
-#use diagnostics;
 use Getopt::Long;
-#use Getopt::Std;
 
 #process command line arguments
 
@@ -54,13 +51,13 @@ my ($organism,
 
 sub main {
         &open_file;
-        print "\nWorking...\n\n";
+        print "\nFile opened, initiating sequences\n\n";
         &initiate_sequences;
-        print "\nWorking...\n\n";
+        print "\nFrames initiated, translating to protein\n\n";
         &translate_sequences;
-        print "\nWorking...\n\n";
+        print "\nSequences translated into proteins, splitting into ORFs\n\n";
         &split_ORF;
-        print "\nWorking...\n\n";
+        print "\nORF evaluated, printing to output file\n\n";
         &filter_length;
         &output_results;
         
@@ -98,14 +95,14 @@ sub initiate_sequences {
         if ($frame_start) {
             $fs1 = substr $fs1, $frame_start;
         }else {
-                print "\nYou have not specified a starting point in the sequence\n";
+                print "\n----You have not specified a starting point in the sequence\n";
                 $frame_start=1
         }
 
         if ($frame_end) {
             $fs1 = substr $fs1, $frame_start, (length ($fs1) - $frame_end);
         }else {
-                print "\nYou have not specified a ending point in the sequence\n";
+                print "\n----You have not specified a ending point in the sequence\n\n";
         }
         
         
@@ -291,7 +288,7 @@ sub output_results {
 
         if ($ofilename) {
                 open( OUTPUT, '>', "$ofilename");
-        }else {
+        } else {
                 print "no output filename specified, printing to output.fasta\n";
                 $ofilename = "output.fasta";
                 open( OUTPUT, '>', "$ofilename");        
@@ -343,6 +340,7 @@ sub output_results {
         print "\nFrame 4 has $ORF_count4 ORFs\n";
         print "\nFrame 5 has $ORF_count5 ORFs\n";
         print "\nFrame 6 has $ORF_count6 ORFs\n";
+        print "\nTotal number of ORF was ".($ORF_count1+$ORF_count2+$ORF_count3+$ORF_count4+$ORF_count5+$ORF_count6)."\n";
 
 
 }
