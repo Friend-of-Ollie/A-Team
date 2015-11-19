@@ -1,13 +1,13 @@
 #!/usr/bin/perl -w
 # Read a FASTA file and extract data
-use Getopt::Std;
 use strict;
-use vars qw($opt_s);
-getopts('abt:s:');
-use Data::Dumper;
+use vars qw($opt_s $opt_c $opt_n);
+use Getopt::Std;
+getopts('abt:ncs:');
 
 # set a variable for hash choice
 my $hashchoice = (defined $opt_s ) ? $opt_s: 0;
+
 # mass hashes
 my %s2m = (A =>  71.0371, C => 103.0092, D => 115.0269, E => 129.0426,
         F => 147.0684, G =>  57.0215, H => 137.0589, I => 113.0841,
@@ -33,6 +33,8 @@ my @filedata= ();
 my @heads = ("1");
 my @pvalue = ("M");
 my @output = ("Peptide_name\t\tpeptide\t\tMass-to-Charge\t\tz\t\tP\t\tSequence\n");
+my @Nput = ("Peptide_name\t\tpeptide\t\tMass-to-Charge\t\tz\t\tP\t\tSequence\n");
+my @Cput = ("Peptide_name\t\tpeptide\t\tMass-to-Charge\t\tz\t\tP\t\tSequence\n");
 my @sequens = ();
 my $filename ;
 
@@ -61,27 +63,27 @@ else {
 }
 
 # kill script if no filename is provided
-$filename = shift or die "Failed to supply a filename: $0 FILENAME\n";
+$filename = shift or die "Failed to supply a filename: $0 -s 1/2 FILENAME\n";
 
 #truncating the filename
-my $nameoffile = "MS$filename" ;
+my $nameoffile = "$filename" ;
 
 if ($nameoffile =~ /Trypsin/){
 	$nameoffile ="Trypsin";
 }
-;
+
 if ($nameoffile =~ /Endoproteinase_Lys-C/){
 	$nameoffile ="Endoproteinase_Lys-C";
 }
-;
+
 if ($nameoffile =~ /Endoproteinase_Arg-C/){
 	$nameoffile ="Endoproteinase_Arg-C";
 }
-;
+
 if ($nameoffile =~ /V8_proteinase/){
 	$nameoffile ="V8_proteinase";
 }
-;
+
 
 # body of script
 
@@ -169,7 +171,7 @@ foreach $_ (@sequens ){
                                 }
                 $fm = $mtc + $mc;
                 my $newstring = join('', @readout );
-                $ovalue = " $heads[$count] \t $count \t  $fm  \t 1 \t $pvalue[$count] \t $newstring" ;
+                $ovalue = " $heads[$count]\t$count\t$fm\t1\t$pvalue[$count]\t$newstring" ;
                 push (@output, $ovalue);
                 # clear counting elements to avoid culmulative count
                 @readout=() ;
@@ -177,9 +179,70 @@ foreach $_ (@sequens ){
                 $mc=0;
                 $mtc=0;
 }
+if ($opt_c){
+open (my $fh, ">", "MS$nameoffile\_$masschoice\_Cterm.pepmasses");
+if ($nameoffile eq"Trypsin"){
+		foreach $_ (@output){
+			if ($_ =~ /\.^K|R$/){
+					my $sortput = $_;
+					push (@Cput, $sortput);
+					$sortput = "";			
+						}
+					}
+}
+elsif ($nameoffile eq"Endoproteinase_Lys-C"){
+		foreach $_ (@output){
+			if ($_ =~ /\.^K$/){
+					my $sortput = $_;
+					push (@Cput, $sortput);
+					$sortput = "";			
+						}
+					}
+}
+elsif ($nameoffile eq"Endoproteinase_Arg-C"){
+		foreach $_ (@output){
+			if ($_ =~ /\.^R$/){
+					my $sortput = $_;
+					push (@Cput, $sortput);
+					$sortput = "";			
+						}
+					}
+}
+elsif ($nameoffile eq "V8_proteinase"){
+		foreach $_ (@output){
+			if ($_ =~ /\.^E$/){
+					my $sortput = $_;
+					push (@Cput, $sortput);
+					$sortput = "";			
+						}
+					}
+}
+			else {
+				print "Please format the file to include the protease in the filename" and die ;
+				}
 
+print $fh @Cput ;
+print "FILE $nameoffile\_$masschoice\_Cterm.pepmasses written \n" ;
+close $fh;
+
+}
+
+if ($opt_n){
+open (my $fh, ">", "MS$nameoffile\_$masschoice\_Nterm.pepmasses");
+		foreach $_ (@output){
+			if ($_ =~ /M*K|R/){
+					my $sortput = $_;
+					push (@Nput, $sortput);
+					$sortput = "";			
+						}
+					}
+print $fh @Nput ;
+print "FILE $nameoffile\_$masschoice\_Nterm.pepmasses written \n" ;
+close $fh;
+
+}
 # write to file
-open (my $fh, ">", "$nameoffile\_$masschoice.pepmasses");
+open (my $fh, ">", "MS$nameoffile\_$masschoice.pepmasses");
 print $fh @output ;
 print "FILE $nameoffile\_$masschoice.pepmasses written \n" ;
 close $fh;
